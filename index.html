@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mon Espace Perso</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <section id="login-section" class="card">
+        <h1>Connexion</h1>
+        <p>Renseigne tes informations pour accéder à ton espace personnel.</p>
+
+        <form id="login-form" novalidate>
+          <label for="firstName">Prénom</label>
+          <input id="firstName" name="firstName" type="text" required />
+
+          <label for="lastName">Nom</label>
+          <input id="lastName" name="lastName" type="text" required />
+
+          <label for="phone">Numéro de téléphone</label>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            inputmode="tel"
+            placeholder="06 12 34 56 78"
+            required
+          />
+
+          <button type="submit">Se connecter</button>
+        </form>
+        <p id="login-error" class="error" role="alert" aria-live="polite"></p>
+      </section>
+
+      <section id="account-section" class="card hidden" aria-live="polite">
+        <div class="account-header">
+          <h2 id="welcome-message"></h2>
+          <button id="logout-btn" type="button" class="secondary">Se déconnecter</button>
+        </div>
+
+        <p>Voici ton bloc-notes personnel :</p>
+        <label for="notes">Tes notes</label>
+        <textarea id="notes" rows="10" placeholder="Écris ce que tu veux..."></textarea>
+        <p id="save-status" class="status"></p>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body {
+        width: 100%; height: 100%;
+        overflow: hidden;
+        background: #000;
+      }
+      #stage {
+        position: relative;
+        width: 100%; height: 100%;
+        overflow: hidden;
+      }
+      #video-wrap {
+        position: absolute;
+        left: 0; top: 0;
+        width: 1920px; height: 1080px;
+        overflow: hidden;
+      }
+      #video-wrap video {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        display: block;
+        transform-origin: 50% 50%;
+        will-change: transform;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="stage"
+      data-composition-id="reunion-zoom-montage"
+      data-start="0"
+      data-duration="143.55"
+      data-fps="16"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div id="video-wrap">
+        <video
+          id="bg-video"
+          src="input-video.mp4"
+          muted
+          playsinline
+          data-start="0"
+          data-duration="143.55"
+          data-track-index="1"
+        ></video>
+      </div>
+
+      <script src="vendor/gsap.min.js"></script>
+      <script>
+        (function () {
+          const vid = document.getElementById('bg-video');
+          const tl = window.gsap.timeline({ paused: true });
+
+          /*
+           * Zoom-pan choreography for a 2m23s screen-recording.
+           *
+           * Technique: we animate the <video> element's CSS transform
+           * (scale + x + y) to simulate a "camera" zooming into and
+           * panning across the screen.
+           *
+           * To zoom into screen point (cx, cy) at factor Z:
+           *   translateX = (W/2 - cx) * (Z - 1)   (offsets so cx → canvas-center)
+           *   translateY = (H/2 - cy) * (Z - 1)
+           *   scale      = Z
+           *
+           * W = 1920, H = 1080
+           *
+           * All durations / ease designed for a 16fps source.
+           */
+
+          const W = 1920, H = 1080;
+          function zoomParams(cx, cy, z) {
+            return {
+              scale: z,
+              x: (W / 2 - cx) * (z - 1),
+              y: (H / 2 - cy) * (z - 1),
+              transformOrigin: '50% 50%',
+            };
+          }
+          const EASE_IN  = 'power2.inOut';
+          const EASE_OUT = 'power3.inOut';
+          const Z_RESET  = { scale: 1, x: 0, y: 0, transformOrigin: '50% 50%' };
+
+          // ── Segment 0: 0 → 4s — full-frame intro ──────────────────────────────
+          tl.set('#bg-video', Z_RESET, 0);
+
+          // ── Segment 1: 4 → 14s — zoom toolbar (top-center, y=110) ──────────────
+          tl.to('#bg-video', { ...zoomParams(960, 110, 1.9), duration: 0.9, ease: EASE_IN }, 4);
+          tl.to('#bg-video', { ...Z_RESET, duration: 0.7, ease: EASE_OUT }, 13.3);
+
+          // ── Segment 2: 15 → 28s — zoom right panel / share area ────────────────
+          tl.to('#bg-video', { ...zoomParams(1540, 420, 1.75), duration: 0.9, ease: EASE_IN }, 15);
+          tl.to('#bg-video', { ...Z_RESET, duration: 0.7, ease: EASE_OUT }, 27.3);
+
+          // ── Segment 3: 29 → 42s — zoom center-left content ─────────────────────
+          tl.to('#bg-video', { ...zoomParams(560, 560, 1.8), duration: 0.85, ease: EASE_IN }, 29);
+          // mid-pan: slide right within this zoom window
+          tl.to('#bg-video', {
+            x: (W / 2 - 960) * (1.8 - 1),
+            duration: 4, ease: 'power1.inOut',
+          }, 33);
+          tl.to('#bg-video', { ...Z_RESET, duration: 0.7, ease: EASE_OUT }, 41.3);
+
+          // ── Segment 4: 43 → 56s — zoom main content area center ────────────────
+          tl.to('#bg-video', { ...zoomParams(960, 540, 2.1), duration: 1, ease: EASE_IN }, 43);
+          tl.to('#bg-video', { ...Z_RESET, duration: 0.8, ease: EASE_OUT }, 55.2);
+
+          // ── Segment 5: 57 → 68s — zoom top-right (nav / buttons) ───────────────
+          tl.to('#bg-video', { ...zoomParams(1680, 80, 2.0), duration: 0.9, ease: EASE_IN }, 57);
+          tl.to('#bg-video', { ...Z_RESET, duration: 0.7, ease: EASE_OUT }, 67.3);
+
+          // ── Segment 6: 69 → 80s — zoom bottom-left (chat / toolbar) ───────────
+          tl.to('#bg-video', { ...zoomParams(380, 940, 1.85), duration: 0.9, ease: EASE_IN }, 69);
+          tl.to('#bg-video', { ...Z_RESET, duration: 0.7, ease: EASE_OUT }, 79.3);
+
+          // ── Segment 7: 81 → 93s — zoom center-right panel ──────────────────────
+          tl.to('#bg-video', { ...zoomParams(1380, 560, 1.7), duration: 0.85, ease: EASE_IN }, 81);
+          // subtle continuous pan down
+          tl.to('#bg-video', {
+            y: (H / 2 - 700) * (1.7 - 1),
+            duration: 5, ease: 'none',
+          }, 84);
+          tl.to('#bg-video', { ...Z_RESET, duration: 0.75, ease: EASE_OUT }, 92.3);
+
+          // ── Segment 8: 94 → 106s — tight zoom on center-left click zone ────────
+          tl.to('#bg-video', { ...zoomParams(640, 440, 2.2), duration: 1, ease: EASE_IN }, 94);
+          tl.to('#bg-video', { ...Z_RESET, duration: 0.8, ease: EASE_OUT }, 105.2);
+
+          // ── Segment 9: 107 → 118s — zoom top toolbar buttons (left) ─────────────
+          tl.to('#bg-video', { ...zoomParams(320, 60, 2.0), duration: 0.9, ease: EASE_IN }, 107);
+          tl.to('#bg-video', { ...Z_RESET, duration: 0.7, ease: EASE_OUT }, 117.3);
+
+          // ── Segment 10: 119 → 131s — zoom bottom-center taskbar/status ──────────
+          tl.to('#bg-video', { ...zoomParams(960, 980, 1.9), duration: 0.9, ease: EASE_IN }, 119);
+          tl.to('#bg-video', { ...Z_RESET, duration: 0.7, ease: EASE_OUT }, 130.3);
+
+          // ── Segment 11: 132 → end — wide pullback, end clean ────────────────────
+          tl.to('#bg-video', { scale: 1.05, x: 0, y: 0, duration: 0.5, ease: 'power1.in' }, 132);
+          tl.to('#bg-video', { ...Z_RESET, duration: 1.5, ease: 'power2.out' }, 133.5);
+
+          // ── Register timeline ───────────────────────────────────────────────────
+          window.__timelines = window.__timelines || {};
+          window.__timelines['reunion-zoom-montage'] = tl;
+        })();
+      </script>
+    </div>
+  </body>
+</html>

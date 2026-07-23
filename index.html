@@ -33,10 +33,34 @@ const $ = id => document.getElementById(id);
 const log = msg => { $("log").textContent += msg + "\n"; $("log").scrollTop = 99999; };
 const setStatus = html => $("status").innerHTML = html;
 
-function showCode(value) {
-  $("code").textContent = value;
-  log("CODE LU : " + value);
-  if (navigator.vibrate) navigator.vibrate(80);
+// ── Validation : clé de contrôle EAN-8 / EAN-13 / UPC-A ──
+// Le dernier chiffre est calculé à partir des autres : un code mal lu échoue à ce test.
+function validChecksum(code) {
+  if (!/^\d{8}$|^\d{12,13}$/.test(code)) return false;
+  const digits = code.split("").map(Number);
+  const check = digits.pop();
+  let sum = 0;
+  // poids 3 sur les positions impaires depuis la droite
+  digits.reverse().forEach((d, i) => { sum += d * (i % 2 === 0 ? 3 : 1); });
+  return (10 - (sum % 10)) % 10 === check;
+}
+
+// ── Vote : on n'accepte un code qu'après N lectures identiques consécutives ──
+const CONFIRM = 3;
+let candidate = null, votes = 0, accepted = null;
+
+function onRead(value) {
+  const v = String(value).trim();
+  if (v === accepted) return;                 // déjà validé
+  if (!validChecksum(v)) { log("rejeté (checksum) : " + v); return; }
+  if (v === candidate) { votes++; } else { candidate = v; votes = 1; }
+  log("lecture " + votes + "/" + CONFIRM + " : " + v);
+  if (votes >= CONFIRM) {
+    accepted = v;
+    $("code").textContent = v;
+    log("✔ CODE CONFIRMÉ : " + v);
+    if (navigator.vibrate) navigator.vibrate(80);
+  }
 }
 
 (async () => {
@@ -48,8 +72,10 @@ function showCode(value) {
     try {
       const formats = await BarcodeDetector.getSupportedFormats();
       log("BarcodeDetector présent — formats : [" + formats.join(", ") + "]");
-      if (formats.length > 0) {
-        detector = new BarcodeDetector({ formats });
+      const wanted = ["ean_13", "ean_8", "upc_a", "upc_e"].filter(f => formats.includes(f));
+      log("formats retenus (produits uniquement) : [" + wanted.join(", ") + "]");
+      if (wanted.length > 0) {
+        detector = new BarcodeDetector({ formats: wanted });
       } else {
         log("→ liste vide (cas Chrome PC) : moteur inutilisable, passage à ZXing");
       }
@@ -73,7 +99,7 @@ function showCode(value) {
     const tick = async () => {
       try {
         const codes = await detector.detect($("video"));
-        if (codes.length) showCode(codes[0].rawValue);
+        if (codes.length) onRead(codes[0].rawValue);
       } catch (e) {}
       requestAnimationFrame(tick);
     };
@@ -84,14 +110,21 @@ function showCode(value) {
   // ── Chemin ZXing : on lui laisse TOUT gérer, caméra comprise
   if (window.ZXing && ZXing.BrowserMultiFormatReader) {
     setStatus("moteur : <b>zxing</b> — cadrez un code-barres");
-    const reader = new ZXing.BrowserMultiFormatReader();
-    log("ZXing chargé, démarrage decodeFromConstraints…");
+    // Restreindre aux codes produits : moins de formats candidats = moins de fausses lectures
+    const hints = new Map();
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+      ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E,
+    ]);
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    const reader = new ZXing.BrowserMultiFormatReader(hints);
+    log("ZXing chargé (formats EAN/UPC + TRY_HARDER), démarrage…");
     try {
       await reader.decodeFromConstraints(
-        { video: { facingMode: { ideal: "environment" } } },
+        { video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } },
         $("video"),
         (result, err) => {
-          if (result) showCode(result.getText());
+          if (result) onRead(result.getText());
           // err = NotFoundException à chaque image sans code : normal, on ignore
         }
       );

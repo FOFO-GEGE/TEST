@@ -3,26 +3,38 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Test scan code-barres</title>
+<title>Scan code-barres par photo</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, sans-serif; background: #111; color: #fff; min-height: 100vh; display: flex; flex-direction: column; }
-  #status { padding: 10px 16px; font-size: 13px; background: #222; color: #aaa; }
-  #status b { color: #4ade80; }
-  #videoWrap { position: relative; flex: 1; min-height: 55vh; background: #000; }
-  video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  #result { padding: 20px 16px; background: #1a1a1a; text-align: center; }
+  body { font-family: system-ui, sans-serif; background: #111; color: #fff; min-height: 100vh; padding: 20px 16px; }
+  h1 { font-size: 17px; margin-bottom: 4px; }
+  .sub { font-size: 12px; color: #888; margin-bottom: 18px; }
+  #btnPhoto { display: block; width: 100%; padding: 16px; font-size: 16px; font-weight: 600; border: none; border-radius: 14px; background: #16a34a; color: #fff; cursor: pointer; margin-bottom: 10px; }
+  #btnFile { display: block; width: 100%; padding: 12px; font-size: 13px; border: 1px solid #333; border-radius: 12px; background: transparent; color: #aaa; cursor: pointer; margin-bottom: 18px; }
+  #preview { width: 100%; max-height: 260px; object-fit: contain; border-radius: 12px; background: #000; display: none; margin-bottom: 14px; }
+  #result { padding: 18px 14px; background: #1a1a1a; border-radius: 14px; text-align: center; margin-bottom: 14px; }
   #result .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin-bottom: 6px; }
-  #code { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; color: #4ade80; min-height: 38px; }
-  #log { padding: 10px 16px; font-size: 11px; font-family: monospace; color: #777; white-space: pre-wrap; max-height: 130px; overflow-y: auto; }
+  #code { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; color: #4ade80; min-height: 34px; word-break: break-all; }
+  #status { font-size: 13px; color: #f59e0b; text-align: center; min-height: 18px; margin-bottom: 12px; }
+  #log { font-size: 11px; font-family: monospace; color: #666; white-space: pre-wrap; max-height: 160px; overflow-y: auto; background: #0a0a0a; border-radius: 10px; padding: 10px; }
+  input[type=file] { display: none; }
 </style>
 </head>
 <body>
 
-<div id="status">démarrage…</div>
-<div id="videoWrap"><video id="video" muted playsinline autoplay></video></div>
+<h1>Lecture de code-barres par photo</h1>
+<div class="sub">Prenez le code en photo, net et de près — le décodage se fait sur l'image fixe.</div>
+
+<button id="btnPhoto">📷 Prendre le code-barres en photo</button>
+<button id="btnFile">…ou choisir une image existante</button>
+
+<input type="file" id="inputPhoto" accept="image/*" capture="environment">
+<input type="file" id="inputFile" accept="image/*">
+
+<img id="preview" alt="">
+<div id="status"></div>
 <div id="result">
-  <div class="label">Dernier code lu</div>
+  <div class="label">Code lu</div>
   <div id="code">—</div>
 </div>
 <div id="log"></div>
@@ -30,112 +42,132 @@
 <script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-const log = msg => { $("log").textContent += msg + "\n"; $("log").scrollTop = 99999; };
-const setStatus = html => $("status").innerHTML = html;
+const log = m => { $("log").textContent += m + "\n"; $("log").scrollTop = 99999; };
+const setStatus = m => $("status").textContent = m;
 
-// ── Validation : clé de contrôle EAN-8 / EAN-13 / UPC-A ──
-// Le dernier chiffre est calculé à partir des autres : un code mal lu échoue à ce test.
+// ── Clé de contrôle EAN-8 / EAN-13 / UPC-A : élimine les lectures erronées ──
 function validChecksum(code) {
   if (!/^\d{8}$|^\d{12,13}$/.test(code)) return false;
-  const digits = code.split("").map(Number);
-  const check = digits.pop();
+  const d = code.split("").map(Number);
+  const check = d.pop();
   let sum = 0;
-  // poids 3 sur les positions impaires depuis la droite
-  digits.reverse().forEach((d, i) => { sum += d * (i % 2 === 0 ? 3 : 1); });
+  d.reverse().forEach((n, i) => { sum += n * (i % 2 === 0 ? 3 : 1); });
   return (10 - (sum % 10)) % 10 === check;
 }
 
-// ── Vote : on n'accepte un code qu'après N lectures identiques consécutives ──
-const CONFIRM = 3;
-let candidate = null, votes = 0, accepted = null;
+$("btnPhoto").onclick = () => $("inputPhoto").click();
+$("btnFile").onclick  = () => $("inputFile").click();
+$("inputPhoto").onchange = e => handleFile(e.target.files[0]);
+$("inputFile").onchange  = e => handleFile(e.target.files[0]);
 
-function onRead(value) {
-  const v = String(value).trim();
-  if (v === accepted) return;                 // déjà validé
-  if (!validChecksum(v)) { log("rejeté (checksum) : " + v); return; }
-  if (v === candidate) { votes++; } else { candidate = v; votes = 1; }
-  log("lecture " + votes + "/" + CONFIRM + " : " + v);
-  if (votes >= CONFIRM) {
-    accepted = v;
-    $("code").textContent = v;
-    log("✔ CODE CONFIRMÉ : " + v);
+async function handleFile(file) {
+  if (!file) return;
+  $("code").textContent = "—";
+  setStatus("analyse en cours…");
+  log("— image reçue : " + file.name + " (" + Math.round(file.size/1024) + " ko)");
+
+  const url = URL.createObjectURL(file);
+  const img = $("preview");
+  img.style.display = "block";
+  await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+  log("image chargée : " + img.naturalWidth + "×" + img.naturalHeight);
+
+  // On tente plusieurs variantes : originale, agrandie, rotations.
+  // Une photo n'est jamais parfaitement cadrée — c'est le rôle du décodage, pas de l'utilisateur.
+  const found = await decodeWithVariants(img);
+
+  URL.revokeObjectURL(url);
+  $("inputPhoto").value = ""; $("inputFile").value = "";
+
+  if (found) {
+    $("code").textContent = found;
+    setStatus("");
+    log("✔ CODE VALIDE : " + found);
     if (navigator.vibrate) navigator.vibrate(80);
+  } else {
+    setStatus("Aucun code lisible — reprenez la photo de plus près, bien à plat, sans reflet.");
+    log("✘ échec sur toutes les variantes");
   }
 }
 
-(async () => {
-  log("page chargée — " + navigator.userAgent.slice(0, 80));
+// Dessine l'image sur un canvas avec échelle et rotation données
+function toCanvas(img, scale, angle) {
+  const w = Math.round(img.naturalWidth * scale);
+  const h = Math.round(img.naturalHeight * scale);
+  const c = document.createElement("canvas");
+  if (angle % 180 === 0) { c.width = w; c.height = h; }
+  else { c.width = h; c.height = w; }
+  const ctx = c.getContext("2d");
+  ctx.translate(c.width / 2, c.height / 2);
+  ctx.rotate(angle * Math.PI / 180);
+  ctx.drawImage(img, -w / 2, -h / 2, w, h);
+  return c;
+}
 
-  // 1. Moteur natif du navigateur : seulement s'il sait VRAIMENT lire des formats
+async function decodeWithVariants(img) {
+  // Moteur natif seulement s'il sait vraiment lire (liste de formats non vide)
   let detector = null;
   if ("BarcodeDetector" in window) {
     try {
-      const formats = await BarcodeDetector.getSupportedFormats();
-      log("BarcodeDetector présent — formats : [" + formats.join(", ") + "]");
-      const wanted = ["ean_13", "ean_8", "upc_a", "upc_e"].filter(f => formats.includes(f));
-      log("formats retenus (produits uniquement) : [" + wanted.join(", ") + "]");
-      if (wanted.length > 0) {
-        detector = new BarcodeDetector({ formats: wanted });
-      } else {
-        log("→ liste vide (cas Chrome PC) : moteur inutilisable, passage à ZXing");
-      }
-    } catch (e) { log("BarcodeDetector erreur : " + e.message); }
-  } else {
-    log("BarcodeDetector absent de ce navigateur");
+      const fs = await BarcodeDetector.getSupportedFormats();
+      const wanted = ["ean_13", "ean_8", "upc_a", "upc_e"].filter(f => fs.includes(f));
+      if (wanted.length) { detector = new BarcodeDetector({ formats: wanted }); log("moteur natif dispo (" + wanted.join(",") + ")"); }
+      else log("moteur natif présent mais vide → ZXing");
+    } catch {}
   }
 
-  // ── Chemin natif : on gère la caméra nous-mêmes
-  if (detector) {
-    setStatus("moteur : <b>natif</b> — cadrez un code-barres");
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } }
-      });
-      $("video").srcObject = stream;
-      await $("video").play();
-      log("caméra démarrée (natif)");
-    } catch (e) { setStatus("accès caméra refusé"); log("getUserMedia : " + e.message); return; }
-
-    const tick = async () => {
-      try {
-        const codes = await detector.detect($("video"));
-        if (codes.length) onRead(codes[0].rawValue);
-      } catch (e) {}
-      requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-    return;
-  }
-
-  // ── Chemin ZXing : on lui laisse TOUT gérer, caméra comprise
-  if (window.ZXing && ZXing.BrowserMultiFormatReader) {
-    setStatus("moteur : <b>zxing</b> — cadrez un code-barres");
-    // Restreindre aux codes produits : moins de formats candidats = moins de fausses lectures
+  // Moteur ZXing restreint aux codes produits + mode renforcé
+  let reader = null;
+  if (window.ZXing) {
     const hints = new Map();
     hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
       ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
       ZXing.BarcodeFormat.UPC_A, ZXing.BarcodeFormat.UPC_E,
     ]);
     hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-    const reader = new ZXing.BrowserMultiFormatReader(hints);
-    log("ZXing chargé (formats EAN/UPC + TRY_HARDER), démarrage…");
-    try {
-      await reader.decodeFromConstraints(
-        { video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } },
-        $("video"),
-        (result, err) => {
-          if (result) onRead(result.getText());
-          // err = NotFoundException à chaque image sans code : normal, on ignore
-        }
-      );
-      log("boucle ZXing lancée — la lecture est active");
-    } catch (e) { setStatus("accès caméra refusé ou lecture impossible"); log("ZXing : " + e.message); }
-    return;
+    reader = new ZXing.BrowserMultiFormatReader(hints);
   }
 
-  setStatus("aucun moteur disponible");
-  log("ZXing non chargé (CDN inaccessible ?)");
-})();
+  // Variantes : taille max 1600px pour la vitesse, puis pleine taille ; 4 rotations
+  const baseScale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+  const variants = [];
+  for (const scale of [baseScale, 1]) {
+    for (const angle of [0, 90, 180, 270]) variants.push({ scale, angle });
+    if (baseScale === 1) break; // pas de doublon si l'image est déjà petite
+  }
+
+  for (const v of variants) {
+    const canvas = toCanvas(img, v.scale, v.angle);
+    const tag = "échelle " + v.scale.toFixed(2) + " / rot " + v.angle + "°";
+
+    // 1. natif
+    if (detector) {
+      try {
+        const codes = await detector.detect(canvas);
+        for (const c of codes) {
+          const val = String(c.rawValue).trim();
+          if (validChecksum(val)) { log("natif OK (" + tag + ")"); return val; }
+          log("natif rejeté checksum (" + tag + ") : " + val);
+        }
+      } catch {}
+    }
+    // 2. zxing
+    // 2. zxing — via decodeFromImageUrl : sa gestion interne ne sait pas
+    // mesurer un canvas passé directement, il faut lui donner une image.
+    if (reader) {
+      try {
+        const result = await reader.decodeFromImageUrl(canvas.toDataURL("image/jpeg", 0.92));
+        if (result) {
+          const val = String(result.getText()).trim();
+          if (validChecksum(val)) { log("zxing OK (" + tag + ")"); return val; }
+          log("zxing rejeté checksum (" + tag + ") : " + val);
+        }
+      } catch (e) { /* NotFound : normal, on tente la variante suivante */ }
+    }
+    log("rien (" + tag + ")");
+  }
+  return null;
+}
 </script>
 </body>
 </html>

@@ -83,7 +83,11 @@ export default function Charges() {
     <div className="p-4">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-semibold text-slate-100">Charges récurrentes</h1>
-        <button onClick={ouvrirAjout} className="flex items-center gap-1 text-sm text-emerald-400">
+        <button
+          onClick={ouvrirAjout}
+          disabled={comptes.length === 0 || categories.length === 0}
+          className="flex items-center gap-1 text-sm text-emerald-400 disabled:opacity-40"
+        >
           <Plus size={16} /> Ajouter
         </button>
       </div>
@@ -93,10 +97,16 @@ export default function Charges() {
         <div className="text-lg font-semibold text-slate-100">{formatMontant(totalMensuelLisse)}</div>
       </div>
 
-      {charges.length === 0 && (
+      {comptes.length === 0 || categories.length === 0 ? (
         <p className="rounded-xl bg-slate-900 p-6 text-center text-sm text-slate-500">
-          Aucune charge récurrente. Ajoutez votre premier loyer, abonnement ou salaire.
+          Créez d'abord un compte et une catégorie dans les réglages.
         </p>
+      ) : (
+        charges.length === 0 && (
+          <p className="rounded-xl bg-slate-900 p-6 text-center text-sm text-slate-500">
+            Aucune charge récurrente. Ajoutez votre premier loyer, abonnement ou salaire.
+          </p>
+        )
       )}
 
       {groupes.map((groupe) => (

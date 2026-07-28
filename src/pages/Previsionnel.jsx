@@ -14,6 +14,17 @@ export default function Previsionnel() {
 
   if (!comptes || !charges || !transactions) return null
 
+  if (comptes.filter((c) => c.type === 'courant' && !c.archive).length === 0) {
+    return (
+      <div className="p-4">
+        <h1 className="mb-4 text-xl font-semibold text-slate-100">Prévisionnel 12 mois</h1>
+        <p className="rounded-xl bg-slate-900 p-6 text-center text-sm text-slate-500">
+          Ajoutez un compte courant dans les réglages pour voir la projection.
+        </p>
+      </div>
+    )
+  }
+
   const comptesCourantsIds = new Set(comptes.filter((c) => c.type === 'courant' && !c.archive).map((c) => c.id))
   const chargesCourantes = charges.filter((c) => comptesCourantsIds.has(c.compteId))
   const soldeDepart = totalComptesCourants(comptes, transactions)

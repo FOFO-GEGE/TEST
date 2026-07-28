@@ -36,6 +36,17 @@ export default function Transactions() {
 
   if (!transactions || !comptes || !categories) return null
 
+  if (comptes.length === 0 || categories.length === 0) {
+    return (
+      <div className="p-4">
+        <h1 className="mb-4 text-xl font-semibold text-slate-100">Transactions</h1>
+        <p className="rounded-xl bg-slate-900 p-6 text-center text-sm text-slate-500">
+          Créez d'abord un compte et une catégorie dans les réglages.
+        </p>
+      </div>
+    )
+  }
+
   const compteParDefaut = comptes.find((c) => !c.archive)?.id ?? comptes[0]?.id ?? null
 
   const enregistrerSaisieRapide = async (e) => {

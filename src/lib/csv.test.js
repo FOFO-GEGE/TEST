@@ -71,8 +71,9 @@ describe('parserDateFlexible', () => {
 
 describe('mapperLignesEnTransactions', () => {
   const categories = [
-    { id: 1, nom: 'Alimentation' },
-    { id: 2, nom: 'Loisirs' },
+    { id: 1, nom: 'Alimentation', type: 'depense' },
+    { id: 2, nom: 'Loisirs', type: 'depense' },
+    { id: 3, nom: 'Salaire', type: 'revenu' },
   ]
 
   it('mappe une colonne Montant signée', () => {
@@ -144,5 +145,52 @@ describe('mapperLignesEnTransactions', () => {
     expect(ignorees).toHaveLength(3)
     expect(ignorees[0].raison).toBe('date illisible')
     expect(ignorees[1].raison).toBe('montant illisible ou nul')
+  })
+
+  it('associe la catégorie du fichier par correspondance partielle, restreinte au type', () => {
+    const categoriesAvecTransport = [...categories, { id: 4, nom: 'Transport', type: 'depense' }]
+    const { entetes, lignes } = parserCsvTexte(
+      'Date;Libelle;Montant;Categorie\n28/07/2026;Métro;-1,90;Transports\n'
+    )
+    const { transactions } = mapperLignesEnTransactions({
+      entetes,
+      lignes,
+      categories: categoriesAvecTransport,
+      compteId: 7,
+      categorieParDefautId: 1,
+    })
+    expect(transactions[0].categorieId).toBe(4)
+  })
+
+  it('ne matche pas une catégorie dont le type ne correspond pas au signe du montant', () => {
+    // "Salaire" (revenu) ne doit jamais être retenu pour une dépense, même
+    // en cas de coïncidence de nom.
+    const categoriesAvecSalaireDepense = [...categories, { id: 5, nom: 'Salaire partiel', type: 'revenu' }]
+    const { entetes, lignes } = parserCsvTexte('Date;Libelle;Montant;Categorie\n28/07/2026;Achat;-9,00;Salaire\n')
+    const { transactions } = mapperLignesEnTransactions({
+      entetes,
+      lignes,
+      categories: categoriesAvecSalaireDepense,
+      compteId: 7,
+      categorieParDefautId: 1,
+    })
+    expect(transactions[0].categorieId).toBe(1) // retombe sur le défaut, pas sur la catégorie revenu
+  })
+
+  it('reconnaît les en-têtes d’un export bancaire réel (Date de comptabilisation, Libelle simplifie)', () => {
+    const texte =
+      'Date de comptabilisation;Libelle simplifie;Libelle operation;Debit;Credit;Categorie\n' +
+      '28/07/2026;ANTHROPIC CLAUUS ANTHROPIC.CO;ANTHROPIC CLAUUS ANTHROPIC.CO;-21,60;;Shopping et services\n'
+    const { entetes, lignes } = parserCsvTexte(texte)
+    const { transactions } = mapperLignesEnTransactions({
+      entetes,
+      lignes,
+      categories,
+      compteId: 7,
+      categorieParDefautId: 1,
+    })
+    expect(transactions[0].date).toBe('2026-07-28')
+    expect(transactions[0].libelle).toBe('ANTHROPIC CLAUUS ANTHROPIC.CO')
+    expect(transactions[0].montant).toBe(-21.6)
   })
 })

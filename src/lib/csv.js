@@ -101,9 +101,14 @@ export function parserDateFlexible(valeurBrute) {
   return null
 }
 
+// Ordre de préférence : le premier alias qui correspond exactement à un
+// en-tête l'emporte, quelle que soit sa position dans le fichier — utile
+// quand plusieurs colonnes similaires coexistent (ex. exports bancaires
+// avec « Date de comptabilisation », « Date operation » et « Date de
+// valeur », ou « Libelle simplifie » et « Libelle operation »).
 const ALIAS_COLONNES = {
-  date: ['date'],
-  libelle: ['libelle', 'description', 'intitule', 'label', 'libelle operation'],
+  date: ['date', 'date de comptabilisation', 'date operation', 'date de valeur'],
+  libelle: ['libelle', 'libelle simplifie', 'description', 'intitule', 'label', 'libelle operation'],
   montant: ['montant', 'amount', 'valeur'],
   debit: ['debit'],
   credit: ['credit'],
@@ -111,7 +116,32 @@ const ALIAS_COLONNES = {
 }
 
 function trouverIndex(entetesNormalisees, cle) {
-  return entetesNormalisees.findIndex((e) => ALIAS_COLONNES[cle].includes(e))
+  for (const alias of ALIAS_COLONNES[cle]) {
+    const idx = entetesNormalisees.indexOf(alias)
+    if (idx !== -1) return idx
+  }
+  return -1
+}
+
+// Les catégories des exports bancaires (« Transports », « Loisirs et
+// vacances », « Logement - maison »...) ne correspondent presque jamais
+// mot pour mot aux catégories de l'app : après l'égalité stricte, on
+// retombe sur une correspondance partielle, restreinte au même type
+// (dépense/revenu) pour éviter un rapprochement absurde.
+function trouverCategorieCorrespondante(nomFichier, categories, typeAttendu) {
+  const nomNormalise = normaliserEntete(nomFichier)
+  if (!nomNormalise) return null
+  const candidates = categories.filter((c) => c.type === typeAttendu)
+
+  const exact = candidates.find((c) => normaliserEntete(c.nom) === nomNormalise)
+  if (exact) return exact
+
+  return (
+    candidates.find((c) => {
+      const nomCat = normaliserEntete(c.nom)
+      return nomCat.length > 2 && (nomNormalise.includes(nomCat) || nomCat.includes(nomNormalise))
+    }) ?? null
+  )
 }
 
 /**
@@ -159,8 +189,8 @@ export function mapperLignesEnTransactions({ entetes, lignes, categories = [], c
 
     let categorieId = categorieParDefautId
     if (iCategorie !== -1) {
-      const nomCategorie = normaliserEntete(brut(iCategorie))
-      const trouvee = categories.find((c) => normaliserEntete(c.nom) === nomCategorie)
+      const typeAttendu = montant < 0 ? 'depense' : 'revenu'
+      const trouvee = trouverCategorieCorrespondante(brut(iCategorie), categories, typeAttendu)
       if (trouvee) categorieId = trouvee.id
     }
 

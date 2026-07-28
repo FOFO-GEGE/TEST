@@ -108,3 +108,46 @@ describe('getOccurrences — fenêtre éloignée de la date de début', () => {
     expect(occ[0].date).toBe('2026-06-10')
   })
 })
+
+describe('getOccurrences — ajustements ponctuels', () => {
+  const loyer = charge({ id: 1, libelle: 'Loyer', montant: 800, jourPrelevement: 5 })
+
+  it('applique un montant ajusté au seul mois visé', () => {
+    const ajustements = [{ chargeId: 1, mois: '2026-09', montant: 950, annulee: false }]
+    const occ = getOccurrences([loyer], '2026-08-01', '2026-10-31', ajustements)
+    expect(occ.map((o) => [o.date, o.montant])).toEqual([
+      ['2026-08-05', 800],
+      ['2026-09-05', 950],
+      ['2026-10-05', 800],
+    ])
+  })
+
+  it('marque l’occurrence ajustée pour que l’interface puisse la signaler', () => {
+    const ajustements = [{ chargeId: 1, mois: '2026-09', montant: 950, annulee: false }]
+    const occ = getOccurrences([loyer], '2026-08-01', '2026-10-31', ajustements)
+    expect(occ.map((o) => o.ajuste)).toEqual([false, true, false])
+  })
+
+  it('supprime l’échéance du mois annulé sans toucher aux autres', () => {
+    const ajustements = [{ chargeId: 1, mois: '2026-09', montant: null, annulee: true }]
+    const occ = getOccurrences([loyer], '2026-08-01', '2026-10-31', ajustements)
+    expect(occ.map((o) => o.date)).toEqual(['2026-08-05', '2026-10-05'])
+  })
+
+  it('n’applique un ajustement qu’à la charge concernée', () => {
+    const autre = charge({ id: 2, libelle: 'Assurance', montant: 30, jourPrelevement: 5 })
+    const ajustements = [{ chargeId: 1, mois: '2026-09', montant: 950, annulee: false }]
+    const occ = getOccurrences([loyer, autre], '2026-09-01', '2026-09-30', ajustements)
+    expect(occ.map((o) => [o.libelle, o.montant])).toEqual([
+      ['Loyer', 950],
+      ['Assurance', 30],
+    ])
+  })
+
+  it('accepte un montant ajusté à 0 sans le confondre avec « pas d’ajustement »', () => {
+    const ajustements = [{ chargeId: 1, mois: '2026-09', montant: 0, annulee: false }]
+    const occ = getOccurrences([loyer], '2026-09-01', '2026-09-30', ajustements)
+    expect(occ[0].montant).toBe(0)
+    expect(occ[0].ajuste).toBe(true)
+  })
+})

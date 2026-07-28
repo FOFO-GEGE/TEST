@@ -32,6 +32,12 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        // Sans cela, une nouvelle version reste en attente tant que tous les
+        // onglets ne sont pas fermés — sur mobile en PWA installée, cela
+        // revient à ne jamais voir la mise à jour.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
       },
     }),
   ],

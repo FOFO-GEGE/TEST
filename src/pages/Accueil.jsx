@@ -14,8 +14,9 @@ export default function Accueil() {
   const charges = useLiveQuery(() => db.chargesRecurrentes.toArray(), [])
   const transactions = useLiveQuery(() => db.transactions.toArray(), [])
   const categories = useLiveQuery(() => db.categories.toArray(), [])
+  const ajustements = useLiveQuery(() => db.ajustements.toArray(), [])
 
-  if (!comptes || !charges || !transactions || !categories) return null
+  if (!comptes || !charges || !transactions || !categories || !ajustements) return null
 
   const comptesActifs = comptes.filter((c) => !c.archive)
   const soldeCourants = totalComptesCourants(comptes, transactions)
@@ -23,13 +24,14 @@ export default function Accueil() {
   const resultat = calculerResteAVivre({
     charges,
     transactions,
+    ajustements,
     soldeComptesCourants: soldeCourants,
     aujourdHui: new Date(),
   })
 
   const dans30Jours = new Date()
   dans30Jours.setDate(dans30Jours.getDate() + 30)
-  const echeances = getOccurrences(charges, todayISO(), dans30Jours.toISOString().slice(0, 10))
+  const echeances = getOccurrences(charges, todayISO(), dans30Jours.toISOString().slice(0, 10), ajustements)
 
   const comptesCourantsIds = new Set(comptes.filter((c) => c.type === 'courant' && !c.archive).map((c) => c.id))
   const chargesCourantes = charges.filter((c) => comptesCourantsIds.has(c.compteId))
@@ -39,6 +41,7 @@ export default function Accueil() {
   const projection = projeterSoldeJournalier({
     soldeDepart: soldeCourants,
     charges: chargesCourantes,
+    ajustements,
     transactionsFutures,
     dateDebut,
     nombreJours: 365,

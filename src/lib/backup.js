@@ -12,11 +12,12 @@ function marquerExportFait() {
 }
 
 export async function exporterJSON() {
-  const [comptes, categories, chargesRecurrentes, transactions] = await Promise.all([
+  const [comptes, categories, chargesRecurrentes, transactions, ajustements] = await Promise.all([
     db.comptes.toArray(),
     db.categories.toArray(),
     db.chargesRecurrentes.toArray(),
     db.transactions.toArray(),
+    db.ajustements.toArray(),
   ])
 
   const donnees = {
@@ -26,6 +27,7 @@ export async function exporterJSON() {
     categories,
     chargesRecurrentes,
     transactions,
+    ajustements,
   }
 
   const blob = new Blob([JSON.stringify(donnees, null, 2)], { type: 'application/json' })

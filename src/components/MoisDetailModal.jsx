@@ -1,26 +1,28 @@
 import { useState } from 'react'
 import { parseISO, format, endOfMonth } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { Pencil, Plus, ArrowDownCircle, ArrowUpCircle } from 'lucide-react'
+import { CalendarCog, Repeat, Plus, ArrowDownCircle, ArrowUpCircle } from 'lucide-react'
 import { db } from '../db.js'
 import { getOccurrences } from '../lib/occurrences.js'
 import { formatMontant, formatDate, todayISO } from '../lib/format.js'
 import Modal from './Modal.jsx'
 import ChargeFormModal from './ChargeFormModal.jsx'
+import AjustementMoisModal from './AjustementMoisModal.jsx'
 
 const inputCls =
   'w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none'
 const labelCls = 'mb-1 block text-xs font-medium text-slate-400'
 
-export default function MoisDetailModal({ mois, charges, comptes, categories, onClose }) {
+export default function MoisDetailModal({ mois, charges, ajustements, comptes, categories, onClose }) {
   const debutMois = parseISO(`${mois}-01`)
   const debutMoisISO = format(debutMois, 'yyyy-MM-dd')
   const finMoisISO = format(endOfMonth(debutMois), 'yyyy-MM-dd')
-  const occurrences = getOccurrences(charges, debutMoisISO, finMoisISO)
+  const occurrences = getOccurrences(charges, debutMoisISO, finMoisISO, ajustements)
   const aujourdHui = todayISO()
   const dateParDefaut = aujourdHui >= debutMoisISO && aujourdHui <= finMoisISO ? aujourdHui : debutMoisISO
 
   const [chargeEnEdition, setChargeEnEdition] = useState(null)
+  const [chargeEnAjustement, setChargeEnAjustement] = useState(null)
   const [mouvement, setMouvement] = useState({
     signe: 'depense',
     montant: '',
@@ -60,26 +62,40 @@ export default function MoisDetailModal({ mois, charges, comptes, categories, on
               {occurrences.map((o, i) => {
                 const charge = charges.find((c) => c.id === o.chargeId)
                 return (
-                  <li key={`${o.chargeId}-${o.date}-${i}`} className="flex items-center justify-between px-3 py-2">
-                    <div>
-                      <div className="text-sm text-slate-200">{o.libelle}</div>
-                      <div className="text-xs text-slate-500">{formatDate(o.date)}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
+                  <li key={`${o.chargeId}-${o.date}-${i}`} className="px-3 py-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-1.5 text-sm text-slate-200">
+                          {o.libelle}
+                          {o.ajuste && (
+                            <span className="rounded bg-amber-900/60 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">
+                              ajusté
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-500">{formatDate(o.date)}</div>
+                      </div>
                       <span className={`text-sm font-medium ${o.type === 'depense' ? 'text-red-400' : 'text-emerald-400'}`}>
                         {o.type === 'depense' ? '-' : '+'}
                         {formatMontant(o.montant)}
                       </span>
-                      {charge && (
+                    </div>
+                    {charge && (
+                      <div className="mt-2 flex gap-2">
+                        <button
+                          onClick={() => setChargeEnAjustement(charge)}
+                          className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-emerald-800 py-1.5 text-xs font-medium text-emerald-400"
+                        >
+                          <CalendarCog size={13} /> Ce mois seulement
+                        </button>
                         <button
                           onClick={() => setChargeEnEdition(charge)}
-                          className="rounded-full p-1.5 text-slate-400 hover:bg-slate-700"
-                          title="Réadapter cette charge"
+                          className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-700 py-1.5 text-xs font-medium text-slate-300"
                         >
-                          <Pencil size={14} />
+                          <Repeat size={13} /> Tous les mois
                         </button>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </li>
                 )
               })}
@@ -164,6 +180,15 @@ export default function MoisDetailModal({ mois, charges, comptes, categories, on
           </form>
         </section>
       </div>
+
+      {chargeEnAjustement && (
+        <AjustementMoisModal
+          charge={chargeEnAjustement}
+          mois={mois}
+          ajustement={ajustements.find((a) => a.chargeId === chargeEnAjustement.id && a.mois === mois) ?? null}
+          onClose={() => setChargeEnAjustement(null)}
+        />
+      )}
 
       {chargeEnEdition && (
         <ChargeFormModal

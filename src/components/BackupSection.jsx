@@ -14,12 +14,21 @@ export default function BackupSection() {
   const remiseAZero = async () => {
     if (!confirm('Supprimer définitivement toutes les données de cette application ?')) return
     if (!confirm('Dernière confirmation : cette action est irréversible. Continuer ?')) return
-    await db.transaction('rw', db.comptes, db.categories, db.chargesRecurrentes, db.transactions, async () => {
-      await db.comptes.clear()
-      await db.categories.clear()
-      await db.chargesRecurrentes.clear()
-      await db.transactions.clear()
-    })
+    await db.transaction(
+      'rw',
+      db.comptes,
+      db.categories,
+      db.chargesRecurrentes,
+      db.transactions,
+      db.ajustements,
+      async () => {
+        await db.comptes.clear()
+        await db.categories.clear()
+        await db.chargesRecurrentes.clear()
+        await db.transactions.clear()
+        await db.ajustements.clear()
+      }
+    )
     setMessage({ type: 'ok', texte: 'Toutes les données ont été supprimées.' })
   }
 

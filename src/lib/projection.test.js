@@ -72,6 +72,13 @@ describe('resumeMensuel', () => {
     expect(mois[2].mois).toBe('2024-03')
   })
 
+  it('n’applique un ajustement de charge qu’au mois visé', () => {
+    const charges = [charge({ id: 1, libelle: 'Loyer', type: 'depense', montant: 800, jourPrelevement: 5 })]
+    const ajustements = [{ chargeId: 1, mois: '2024-02', montant: 1200, annulee: false }]
+    const mois = resumeMensuel({ soldeDepart: 0, charges, ajustements, dateDebut: '2024-01-01', nombreMois: 3 })
+    expect(mois.map((m) => m.depenses)).toEqual([800, 1200, 800])
+  })
+
   it('intègre les transactions futures dans le mois où elles tombent réellement', () => {
     const mois = resumeMensuel({
       soldeDepart: 100,

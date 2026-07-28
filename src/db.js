@@ -2,7 +2,7 @@ import Dexie from 'dexie'
 
 // Version du schéma exposée pour l'export/import (backup.js), indépendante
 // du numéro de version Dexie ci-dessous.
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 
 export const db = new Dexie('budget-perso')
 
@@ -11,6 +11,14 @@ db.version(1).stores({
   categories: '++id, type',
   chargesRecurrentes: '++id, compteId, categorieId, frequence, active',
   transactions: '++id, date, compteId, categorieId, chargeId',
+})
+
+// v2 : ajustements ponctuels d'une charge sur un mois donné (montant
+// différent, ou échéance annulée pour ce mois-là uniquement). Ils ne
+// persistent pas les occurrences — celles-ci restent calculées à la volée —
+// mais seulement les exceptions déclarées par l'utilisateur.
+db.version(2).stores({
+  ajustements: '++id, chargeId, mois, [chargeId+mois]',
 })
 
 const CATEGORIES_PAR_DEFAUT = [

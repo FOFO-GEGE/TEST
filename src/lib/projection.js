@@ -13,13 +13,14 @@ const JOURS_PROJECTION_DEFAUT = 365
 export function projeterSoldeJournalier({
   soldeDepart,
   charges,
+  ajustements = [],
   transactionsFutures = [],
   dateDebut,
   nombreJours = JOURS_PROJECTION_DEFAUT,
 }) {
   const debut = parseISO(dateDebut)
   const dateFin = format(addDays(debut, nombreJours), 'yyyy-MM-dd')
-  const occurrences = getOccurrences(charges, dateDebut, dateFin)
+  const occurrences = getOccurrences(charges, dateDebut, dateFin, ajustements)
 
   const variationParJour = new Map()
   for (const o of occurrences) {
@@ -40,10 +41,17 @@ export function projeterSoldeJournalier({
   return points
 }
 
-export function resumeMensuel({ soldeDepart, charges, transactionsFutures = [], dateDebut, nombreMois = 12 }) {
+export function resumeMensuel({
+  soldeDepart,
+  charges,
+  ajustements = [],
+  transactionsFutures = [],
+  dateDebut,
+  nombreMois = 12,
+}) {
   const debut = parseISO(dateDebut)
   const dateFin = format(endOfMonth(addMonths(debut, nombreMois - 1)), 'yyyy-MM-dd')
-  const occurrences = getOccurrences(charges, dateDebut, dateFin)
+  const occurrences = getOccurrences(charges, dateDebut, dateFin, ajustements)
 
   const mois = []
   let solde = soldeDepart

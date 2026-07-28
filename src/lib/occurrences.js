@@ -38,15 +38,26 @@ function premiereEcheance(charge) {
   return candidate
 }
 
+export function cleAjustement(chargeId, mois) {
+  return `${chargeId}|${mois}`
+}
+
 /**
  * Fonction pure : calcule les occurrences prévues d'une liste de charges
  * récurrentes sur une fenêtre de dates, sans aucune dépendance à Dexie.
- * Retourne { chargeId, date, montant, libelle, type }[], trié par date.
+ * Retourne { chargeId, date, montant, libelle, type, ajuste }[], trié par date.
+ *
+ * `ajustements` porte les exceptions ponctuelles déclarées par l'utilisateur
+ * ({ chargeId, mois: 'yyyy-MM', montant, annulee }) : elles ne s'appliquent
+ * qu'au mois visé, le modèle de la charge reste inchangé pour les autres.
  */
-export function getOccurrences(charges, dateDebut, dateFin) {
+export function getOccurrences(charges, dateDebut, dateFin, ajustements = []) {
   const debutFenetre = parseISO(dateDebut)
   const finFenetre = parseISO(dateFin)
   const occurrences = []
+
+  const parCle = new Map()
+  for (const a of ajustements) parCle.set(cleAjustement(a.chargeId, a.mois), a)
 
   for (const charge of charges) {
     if (!charge.active) continue
@@ -69,13 +80,19 @@ export function getOccurrences(charges, dateDebut, dateFin) {
     while (!isAfter(date, finFenetre)) {
       if (finCharge && isAfter(date, finCharge)) break
       if (!isBefore(date, debutFenetre)) {
-        occurrences.push({
-          chargeId: charge.id,
-          date: format(date, 'yyyy-MM-dd'),
-          montant: charge.montant,
-          libelle: charge.libelle,
-          type: charge.type,
-        })
+        const dateISO = format(date, 'yyyy-MM-dd')
+        const ajustement = parCle.get(cleAjustement(charge.id, dateISO.slice(0, 7)))
+        if (!ajustement?.annulee) {
+          const montantAjuste = ajustement?.montant
+          occurrences.push({
+            chargeId: charge.id,
+            date: dateISO,
+            montant: montantAjuste == null ? charge.montant : montantAjuste,
+            libelle: charge.libelle,
+            type: charge.type,
+            ajuste: montantAjuste != null,
+          })
+        }
       }
       date = dateEcheance(date.getFullYear(), date.getMonth() + step, charge.jourPrelevement)
     }

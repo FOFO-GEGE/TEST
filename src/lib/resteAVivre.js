@@ -21,10 +21,16 @@ export function estRapprochee(occurrence, transactions) {
  * comptée dans soldeComptesCourants : elle est donc exclue du calcul aussi
  * bien côté dépenses que côté revenus, pour éviter un double comptage.
  */
-export function calculerResteAVivre({ charges, transactions, soldeComptesCourants, aujourdHui = new Date() }) {
+export function calculerResteAVivre({
+  charges,
+  transactions,
+  ajustements = [],
+  soldeComptesCourants,
+  aujourdHui = new Date(),
+}) {
   const dateDebut = format(aujourdHui, 'yyyy-MM-dd')
   const dateFinRecherche = format(addDays(aujourdHui, FENETRE_RECHERCHE_JOURS), 'yyyy-MM-dd')
-  const occurrences = getOccurrences(charges, dateDebut, dateFinRecherche)
+  const occurrences = getOccurrences(charges, dateDebut, dateFinRecherche, ajustements)
 
   const prochainRevenu = occurrences.find((o) => o.type === 'revenu')
   const dateLimite = prochainRevenu ? prochainRevenu.date : dateFinRecherche

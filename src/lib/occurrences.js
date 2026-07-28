@@ -1,4 +1,22 @@
-import { parseISO, format, getDaysInMonth, isBefore, isAfter, differenceInCalendarMonths } from 'date-fns'
+import {
+  parseISO,
+  format,
+  getDaysInMonth,
+  isBefore,
+  isAfter,
+  differenceInCalendarMonths,
+  differenceInCalendarDays,
+} from 'date-fns'
+
+// Une occurrence prévue est rapprochée s'il existe une transaction réelle
+// portant le même chargeId dans une fenêtre de ± 5 jours autour de sa date.
+export function estRapprochee(occurrence, transactions) {
+  return transactions.some(
+    (t) =>
+      t.chargeId === occurrence.chargeId &&
+      Math.abs(differenceInCalendarDays(new Date(t.date), new Date(occurrence.date))) <= 5
+  )
+}
 
 const STEP_MOIS_PAR_FREQUENCE = {
   mensuel: 1,

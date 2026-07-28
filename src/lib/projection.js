@@ -1,7 +1,17 @@
 import { addDays, addMonths, format, startOfMonth, endOfMonth, parseISO } from 'date-fns'
-import { getOccurrences } from './occurrences.js'
+import { getOccurrences, estRapprochee } from './occurrences.js'
 
 const JOURS_PROJECTION_DEFAUT = 365
+
+/**
+ * Occurrences à venir qui ne correspondent à aucune transaction réelle.
+ * Une échéance validée à l'avance existe déjà comme transaction : la
+ * compter en plus de son occurrence prévue ferait apparaître la charge
+ * deux fois dans le mois concerné.
+ */
+function occurrencesNonRapprochees(charges, dateDebut, dateFin, ajustements, transactions) {
+  return getOccurrences(charges, dateDebut, dateFin, ajustements).filter((o) => !estRapprochee(o, transactions))
+}
 
 /**
  * Fonction pure : projette le solde jour par jour à partir des occurrences
@@ -14,13 +24,14 @@ export function projeterSoldeJournalier({
   soldeDepart,
   charges,
   ajustements = [],
-  transactionsFutures = [],
+  transactions = [],
   dateDebut,
   nombreJours = JOURS_PROJECTION_DEFAUT,
 }) {
   const debut = parseISO(dateDebut)
   const dateFin = format(addDays(debut, nombreJours), 'yyyy-MM-dd')
-  const occurrences = getOccurrences(charges, dateDebut, dateFin, ajustements)
+  const occurrences = occurrencesNonRapprochees(charges, dateDebut, dateFin, ajustements, transactions)
+  const transactionsFutures = transactions.filter((t) => t.date > dateDebut)
 
   const variationParJour = new Map()
   for (const o of occurrences) {
@@ -45,13 +56,14 @@ export function resumeMensuel({
   soldeDepart,
   charges,
   ajustements = [],
-  transactionsFutures = [],
+  transactions = [],
   dateDebut,
   nombreMois = 12,
 }) {
   const debut = parseISO(dateDebut)
   const dateFin = format(endOfMonth(addMonths(debut, nombreMois - 1)), 'yyyy-MM-dd')
-  const occurrences = getOccurrences(charges, dateDebut, dateFin, ajustements)
+  const occurrences = occurrencesNonRapprochees(charges, dateDebut, dateFin, ajustements, transactions)
+  const transactionsFutures = transactions.filter((t) => t.date > dateDebut)
 
   const mois = []
   let solde = soldeDepart

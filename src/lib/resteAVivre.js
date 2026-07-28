@@ -1,18 +1,12 @@
 import { addDays, differenceInCalendarDays, format } from 'date-fns'
-import { getOccurrences } from './occurrences.js'
+import { getOccurrences, estRapprochee } from './occurrences.js'
+
+export { estRapprochee }
 
 // Le cycle le plus long possible (fréquence annuelle) est 12 mois : une
 // fenêtre de recherche de 400 jours garantit de croiser la prochaine
 // occurrence de revenu si une charge de revenu active existe.
 const FENETRE_RECHERCHE_JOURS = 400
-
-export function estRapprochee(occurrence, transactions) {
-  return transactions.some(
-    (t) =>
-      t.chargeId === occurrence.chargeId &&
-      Math.abs(differenceInCalendarDays(new Date(t.date), new Date(occurrence.date))) <= 5
-  )
-}
 
 /**
  * Fonction pure, sans dépendance à Dexie.

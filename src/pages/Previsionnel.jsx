@@ -37,17 +37,17 @@ export default function Previsionnel() {
   const chargesCourantes = charges.filter((c) => comptesCourantsIds.has(c.compteId))
   const dateDebut = todayISO()
   const soldeDepart = totalComptesCourants(comptes, transactions)
-  // Transactions déjà saisies mais datées après aujourd'hui (ex. saisie à
-  // l'avance) : exclues du solde de départ, elles n'impactent la courbe
-  // qu'à leur date réelle, comme une charge prévue.
-  const transactionsFutures = transactions.filter((t) => comptesCourantsIds.has(t.compteId) && t.date > dateDebut)
+  // La projection reçoit toutes les transactions des comptes courants : les
+  // futures alimentent la courbe à leur date, et l'ensemble sert à écarter
+  // les échéances déjà validées pour ne pas les compter deux fois.
+  const transactionsCourantes = transactions.filter((t) => comptesCourantsIds.has(t.compteId))
   const seuil = getSeuilAlerte()
 
   const points = projeterSoldeJournalier({
     soldeDepart,
     charges: chargesCourantes,
     ajustements,
-    transactionsFutures,
+    transactions: transactionsCourantes,
     dateDebut,
     nombreJours: 365,
   })
@@ -55,7 +55,7 @@ export default function Previsionnel() {
     soldeDepart,
     charges: chargesCourantes,
     ajustements,
-    transactionsFutures,
+    transactions: transactionsCourantes,
     dateDebut,
     nombreMois: 12,
   })

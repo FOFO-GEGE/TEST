@@ -36,13 +36,13 @@ export default function Accueil() {
   const comptesCourantsIds = new Set(comptes.filter((c) => c.type === 'courant' && !c.archive).map((c) => c.id))
   const chargesCourantes = charges.filter((c) => comptesCourantsIds.has(c.compteId))
   const dateDebut = todayISO()
-  const transactionsFutures = transactions.filter((t) => comptesCourantsIds.has(t.compteId) && t.date > dateDebut)
+  const transactionsCourantes = transactions.filter((t) => comptesCourantsIds.has(t.compteId))
   const seuil = getSeuilAlerte()
   const projection = projeterSoldeJournalier({
     soldeDepart: soldeCourants,
     charges: chargesCourantes,
     ajustements,
-    transactionsFutures,
+    transactions: transactionsCourantes,
     dateDebut,
     nombreJours: 365,
   })

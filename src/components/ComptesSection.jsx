@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, Pencil, Archive, ArchiveRestore } from 'lucide-react'
 import { db } from '../db.js'
-import { formatMontant, formatDate, todayISO } from '../lib/format.js'
+import { formatMontant, todayISO } from '../lib/format.js'
+import { soldeCompte } from '../lib/soldes.js'
 import Modal from './Modal.jsx'
 
 const inputCls =
@@ -13,6 +14,7 @@ const VIDE = { nom: '', type: 'courant', soldeInitial: '', dateSolde: todayISO()
 
 export default function ComptesSection() {
   const comptes = useLiveQuery(() => db.comptes.toArray(), [])
+  const transactions = useLiveQuery(() => db.transactions.toArray(), [])
   const [edition, setEdition] = useState(null)
 
   const ouvrirAjout = () => setEdition({ ...VIDE })
@@ -36,7 +38,7 @@ export default function ComptesSection() {
 
   const basculerArchive = (c) => db.comptes.update(c.id, { archive: !c.archive })
 
-  if (!comptes) return null
+  if (!comptes || !transactions) return null
 
   return (
     <section>
@@ -55,10 +57,9 @@ export default function ComptesSection() {
           <li key={c.id} className={`flex items-center justify-between px-4 py-3 ${c.archive ? 'opacity-50' : ''}`}>
             <div>
               <div className="text-sm font-medium text-slate-100">{c.nom}</div>
-              <div className="text-xs text-slate-500">
-                {c.type === 'courant' ? 'Compte courant' : 'Épargne'} · {formatMontant(c.soldeInitial)} au {formatDate(c.dateSolde)}
-              </div>
+              <div className="text-xs text-slate-500">{c.type === 'courant' ? 'Compte courant' : 'Épargne'}</div>
             </div>
+            <div className="mr-3 text-sm font-medium text-slate-100">{formatMontant(soldeCompte(c, transactions))}</div>
             <div className="flex items-center gap-2">
               <button onClick={() => basculerArchive(c)} className="rounded-full p-2 text-slate-400 hover:bg-slate-800">
                 {c.archive ? <ArchiveRestore size={16} /> : <Archive size={16} />}

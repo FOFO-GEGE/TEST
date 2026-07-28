@@ -2,7 +2,13 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// Déployée sur GitHub Pages en page de projet (https://fofo-gege.github.io/TEST/),
+// pas en page utilisateur : il faut donc préfixer les chemins par le nom du
+// dépôt en production, mais garder la racine en développement.
+const base = process.env.NODE_ENV === 'production' ? '/TEST/' : '/'
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     VitePWA({
@@ -15,7 +21,8 @@ export default defineConfig({
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',
-        start_url: '/',
+        start_url: base,
+        scope: base,
         lang: 'fr',
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },

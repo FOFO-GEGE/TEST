@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { AlertTriangle } from 'lucide-react'
@@ -6,15 +7,19 @@ import { totalComptesCourants } from '../lib/soldes.js'
 import { projeterSoldeJournalier, resumeMensuel, moisAvecAlerte } from '../lib/projection.js'
 import { getSeuilAlerte } from '../lib/parametres.js'
 import { formatMontant, todayISO } from '../lib/format.js'
+import MoisDetailModal from '../components/MoisDetailModal.jsx'
 
 export default function Previsionnel() {
   const comptes = useLiveQuery(() => db.comptes.toArray(), [])
   const charges = useLiveQuery(() => db.chargesRecurrentes.toArray(), [])
   const transactions = useLiveQuery(() => db.transactions.toArray(), [])
+  const categories = useLiveQuery(() => db.categories.toArray(), [])
+  const [moisSelectionne, setMoisSelectionne] = useState(null)
 
-  if (!comptes || !charges || !transactions) return null
+  if (!comptes || !charges || !transactions || !categories) return null
 
-  if (comptes.filter((c) => c.type === 'courant' && !c.archive).length === 0) {
+  const comptesCourants = comptes.filter((c) => c.type === 'courant' && !c.archive)
+  if (comptesCourants.length === 0) {
     return (
       <div className="p-4">
         <h1 className="mb-4 text-xl font-semibold text-slate-100">Prévisionnel 12 mois</h1>
@@ -25,7 +30,7 @@ export default function Previsionnel() {
     )
   }
 
-  const comptesCourantsIds = new Set(comptes.filter((c) => c.type === 'courant' && !c.archive).map((c) => c.id))
+  const comptesCourantsIds = new Set(comptesCourants.map((c) => c.id))
   const chargesCourantes = charges.filter((c) => comptesCourantsIds.has(c.compteId))
   const dateDebut = todayISO()
   const soldeDepart = totalComptesCourants(comptes, transactions)
@@ -58,6 +63,7 @@ export default function Previsionnel() {
       <h1 className="mb-1 text-xl font-semibold text-slate-100">Prévisionnel 12 mois</h1>
       <p className="mb-4 text-xs text-slate-500">
         Solde des comptes courants projeté à partir des charges récurrentes actives. Seuil d'alerte : {formatMontant(seuil)}.
+        Cliquez sur un mois pour réadapter une charge ou ajouter un mouvement exceptionnel.
       </p>
 
       <div className="mb-6 h-64 rounded-xl bg-slate-900 p-3">
@@ -96,7 +102,11 @@ export default function Previsionnel() {
             {mensuel.map((m) => {
               const enAlerte = alertes.has(m.mois)
               return (
-                <tr key={m.mois} className="border-b border-slate-800 last:border-0">
+                <tr
+                  key={m.mois}
+                  onClick={() => setMoisSelectionne(m.mois)}
+                  className="cursor-pointer border-b border-slate-800 last:border-0 hover:bg-slate-800/60"
+                >
                   <td className="flex items-center gap-1 px-3 py-2 text-slate-200">
                     {m.mois}
                     {enAlerte && <AlertTriangle size={13} className="text-amber-400" />}
@@ -112,6 +122,16 @@ export default function Previsionnel() {
           </tbody>
         </table>
       </div>
+
+      {moisSelectionne && (
+        <MoisDetailModal
+          mois={moisSelectionne}
+          charges={chargesCourantes}
+          comptes={comptesCourants}
+          categories={categories}
+          onClose={() => setMoisSelectionne(null)}
+        />
+      )}
     </div>
   )
 }

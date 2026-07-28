@@ -44,6 +44,19 @@ describe('projeterSoldeJournalier', () => {
     })
     expect(points.find((p) => p.date === '2024-01-10').solde).toBe(1000 - 100 + 2000)
   })
+
+  it('applique une transaction future à sa date réelle, pas dès le départ', () => {
+    const points = projeterSoldeJournalier({
+      soldeDepart: 500,
+      charges: [],
+      transactionsFutures: [{ date: '2024-03-15', montant: -300 }],
+      dateDebut: '2024-01-01',
+      nombreJours: 90,
+    })
+    expect(points.find((p) => p.date === '2024-01-01').solde).toBe(500)
+    expect(points.find((p) => p.date === '2024-03-14').solde).toBe(500)
+    expect(points.find((p) => p.date === '2024-03-15').solde).toBe(200)
+  })
 })
 
 describe('resumeMensuel', () => {
@@ -57,6 +70,19 @@ describe('resumeMensuel', () => {
     expect(mois[0]).toMatchObject({ mois: '2024-01', revenus: 2000, depenses: 800, soldeFinDeMois: 100 + 2000 - 800 })
     expect(mois[1].soldeFinDeMois).toBe(100 + 2000 - 800 + 2000 - 800)
     expect(mois[2].mois).toBe('2024-03')
+  })
+
+  it('intègre les transactions futures dans le mois où elles tombent réellement', () => {
+    const mois = resumeMensuel({
+      soldeDepart: 100,
+      charges: [],
+      transactionsFutures: [{ date: '2024-02-10', montant: -50 }],
+      dateDebut: '2024-01-01',
+      nombreMois: 3,
+    })
+    expect(mois[0].soldeFinDeMois).toBe(100) // janvier non affecté
+    expect(mois[1].depenses).toBe(50)
+    expect(mois[1].soldeFinDeMois).toBe(50)
   })
 })
 

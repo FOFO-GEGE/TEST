@@ -39,35 +39,3 @@ export async function exporterJSON() {
 
   marquerExportFait()
 }
-
-// Remplace intégralement le contenu des 4 tables par celui du fichier importé.
-// L'appelant doit obtenir une confirmation explicite avant d'appeler cette fonction.
-export async function importerJSON(fichier) {
-  const texte = await fichier.text()
-  let donnees
-  try {
-    donnees = JSON.parse(texte)
-  } catch {
-    throw new Error("Fichier invalide : ce n'est pas un JSON valide.")
-  }
-
-  if (donnees.version !== SCHEMA_VERSION) {
-    throw new Error(
-      `Version de schéma incompatible (fichier : ${donnees.version ?? 'inconnue'}, attendu : ${SCHEMA_VERSION}).`
-    )
-  }
-
-  const tables = ['comptes', 'categories', 'chargesRecurrentes', 'transactions']
-  for (const table of tables) {
-    if (!Array.isArray(donnees[table])) {
-      throw new Error(`Fichier invalide : table « ${table} » manquante.`)
-    }
-  }
-
-  await db.transaction('rw', db.comptes, db.categories, db.chargesRecurrentes, db.transactions, async () => {
-    await Promise.all(tables.map((t) => db[t].clear()))
-    await Promise.all(tables.map((t) => db[t].bulkAdd(donnees[t])))
-  })
-
-  marquerExportFait()
-}

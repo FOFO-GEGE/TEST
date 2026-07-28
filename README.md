@@ -52,7 +52,7 @@ npm test          # tests unitaires (Vitest)
 5. **Prévisionnel** : projection du solde jour par jour sur 12 mois, avec
    alerte si le solde passe sous un seuil réglable.
 
-## Export / import (sauvegarde)
+## Export (sauvegarde)
 
 L'application est 100 % locale : toutes les données vivent dans
 l'IndexedDB du navigateur. C'est pratique, mais **fragile** — voir
@@ -62,12 +62,10 @@ l'avertissement ci-dessous.
   Télécharge un fichier `budget-AAAA-MM-JJ.json` contenant l'intégralité
   des comptes, catégories, charges récurrentes et transactions, avec un
   numéro de version de schéma.
-- **Importer** : Réglages → Sauvegarde → « Importer un fichier JSON ».
-  **Remplace intégralement** les données actuelles après confirmation
-  explicite ; le fichier est rejeté si sa version de schéma ne correspond
-  pas à celle attendue par l'application.
 - Un bandeau discret apparaît sur l'accueil si le dernier export a plus
   de 30 jours.
+- Il n'y a pas de fonction d'import (JSON ou CSV) : toute saisie se fait
+  manuellement dans l'application.
 
 ## ⚠️ Avertissement — risque de perte de données
 

@@ -1,32 +1,14 @@
-import { useRef, useState } from 'react'
-import { Download, Upload, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { Download, Trash2 } from 'lucide-react'
 import { db } from '../db.js'
-import { exporterJSON, importerJSON } from '../lib/backup.js'
+import { exporterJSON } from '../lib/backup.js'
 
 export default function BackupSection() {
-  const inputRef = useRef(null)
   const [message, setMessage] = useState(null)
 
   const exporter = async () => {
     await exporterJSON()
     setMessage({ type: 'ok', texte: 'Export téléchargé.' })
-  }
-
-  const choisirFichier = () => inputRef.current?.click()
-
-  const importer = async (e) => {
-    const fichier = e.target.files[0]
-    e.target.value = ''
-    if (!fichier) return
-
-    if (!confirm('Importer ce fichier remplacera intégralement toutes les données actuelles. Continuer ?')) return
-
-    try {
-      await importerJSON(fichier)
-      setMessage({ type: 'ok', texte: 'Import terminé, données remplacées.' })
-    } catch (err) {
-      setMessage({ type: 'erreur', texte: err.message })
-    }
   }
 
   const remiseAZero = async () => {
@@ -51,13 +33,6 @@ export default function BackupSection() {
         >
           <Download size={16} /> Exporter mes données (JSON)
         </button>
-        <button
-          onClick={choisirFichier}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-700 py-2 text-sm font-medium text-slate-200"
-        >
-          <Upload size={16} /> Importer un fichier JSON
-        </button>
-        <input ref={inputRef} type="file" accept="application/json" className="hidden" onChange={importer} />
         <button
           onClick={remiseAZero}
           className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-900 py-2 text-sm font-medium text-red-400"

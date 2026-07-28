@@ -18,6 +18,15 @@ describe('soldeCompte', () => {
   it('retourne soldeInitial si aucune transaction postérieure', () => {
     expect(soldeCompte(compte, [])).toBe(1000)
   })
+
+  it('ignore les transactions datées dans le futur par rapport à aujourdHui', () => {
+    const transactions = [
+      { compteId: 1, date: '2024-06-10', montant: -100 },
+      { compteId: 1, date: '2024-10-15', montant: -800 }, // saisie à l'avance, pas encore survenue
+    ]
+    const aujourdHui = new Date(2024, 6, 1) // 1er juillet 2024
+    expect(soldeCompte(compte, transactions, aujourdHui)).toBe(1000 - 100)
+  })
 })
 
 describe('totalComptesCourants', () => {

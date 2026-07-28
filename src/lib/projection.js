@@ -5,10 +5,18 @@ const JOURS_PROJECTION_DEFAUT = 365
 
 /**
  * Fonction pure : projette le solde jour par jour à partir des occurrences
- * prévues des charges récurrentes (jamais les transactions réelles, qui ne
- * sont connues que pour le passé).
+ * prévues des charges récurrentes et des transactions réelles déjà
+ * enregistrées mais datées dans le futur (ex. saisie à l'avance). Chaque
+ * mouvement n'impacte le solde qu'à sa date réelle, jamais avant — sinon un
+ * mouvement d'octobre fausserait déjà la courbe dès aujourd'hui.
  */
-export function projeterSoldeJournalier({ soldeDepart, charges, dateDebut, nombreJours = JOURS_PROJECTION_DEFAUT }) {
+export function projeterSoldeJournalier({
+  soldeDepart,
+  charges,
+  transactionsFutures = [],
+  dateDebut,
+  nombreJours = JOURS_PROJECTION_DEFAUT,
+}) {
   const debut = parseISO(dateDebut)
   const dateFin = format(addDays(debut, nombreJours), 'yyyy-MM-dd')
   const occurrences = getOccurrences(charges, dateDebut, dateFin)
@@ -17,6 +25,9 @@ export function projeterSoldeJournalier({ soldeDepart, charges, dateDebut, nombr
   for (const o of occurrences) {
     const signe = o.type === 'depense' ? -1 : 1
     variationParJour.set(o.date, (variationParJour.get(o.date) || 0) + signe * o.montant)
+  }
+  for (const t of transactionsFutures) {
+    variationParJour.set(t.date, (variationParJour.get(t.date) || 0) + t.montant)
   }
 
   const points = []
@@ -29,7 +40,7 @@ export function projeterSoldeJournalier({ soldeDepart, charges, dateDebut, nombr
   return points
 }
 
-export function resumeMensuel({ soldeDepart, charges, dateDebut, nombreMois = 12 }) {
+export function resumeMensuel({ soldeDepart, charges, transactionsFutures = [], dateDebut, nombreMois = 12 }) {
   const debut = parseISO(dateDebut)
   const dateFin = format(endOfMonth(addMonths(debut, nombreMois - 1)), 'yyyy-MM-dd')
   const occurrences = getOccurrences(charges, dateDebut, dateFin)
@@ -39,9 +50,17 @@ export function resumeMensuel({ soldeDepart, charges, dateDebut, nombreMois = 12
   for (let i = 0; i < nombreMois; i++) {
     const debutMois = format(startOfMonth(addMonths(debut, i)), 'yyyy-MM-dd')
     const finMois = format(endOfMonth(addMonths(debut, i)), 'yyyy-MM-dd')
+
     const occurrencesDuMois = occurrences.filter((o) => o.date >= debutMois && o.date <= finMois)
-    const revenus = occurrencesDuMois.filter((o) => o.type === 'revenu').reduce((s, o) => s + o.montant, 0)
-    const depenses = occurrencesDuMois.filter((o) => o.type === 'depense').reduce((s, o) => s + o.montant, 0)
+    const transactionsDuMois = transactionsFutures.filter((t) => t.date >= debutMois && t.date <= finMois)
+
+    const revenus =
+      occurrencesDuMois.filter((o) => o.type === 'revenu').reduce((s, o) => s + o.montant, 0) +
+      transactionsDuMois.filter((t) => t.montant > 0).reduce((s, t) => s + t.montant, 0)
+    const depenses =
+      occurrencesDuMois.filter((o) => o.type === 'depense').reduce((s, o) => s + o.montant, 0) +
+      transactionsDuMois.filter((t) => t.montant < 0).reduce((s, t) => s - t.montant, 0)
+
     solde += revenus - depenses
     mois.push({ mois: format(addMonths(debut, i), 'yyyy-MM'), revenus, depenses, soldeFinDeMois: solde })
   }

@@ -27,12 +27,28 @@ export default function Previsionnel() {
 
   const comptesCourantsIds = new Set(comptes.filter((c) => c.type === 'courant' && !c.archive).map((c) => c.id))
   const chargesCourantes = charges.filter((c) => comptesCourantsIds.has(c.compteId))
-  const soldeDepart = totalComptesCourants(comptes, transactions)
   const dateDebut = todayISO()
+  const soldeDepart = totalComptesCourants(comptes, transactions)
+  // Transactions déjà saisies mais datées après aujourd'hui (ex. saisie à
+  // l'avance) : exclues du solde de départ, elles n'impactent la courbe
+  // qu'à leur date réelle, comme une charge prévue.
+  const transactionsFutures = transactions.filter((t) => comptesCourantsIds.has(t.compteId) && t.date > dateDebut)
   const seuil = getSeuilAlerte()
 
-  const points = projeterSoldeJournalier({ soldeDepart, charges: chargesCourantes, dateDebut, nombreJours: 365 })
-  const mensuel = resumeMensuel({ soldeDepart, charges: chargesCourantes, dateDebut, nombreMois: 12 })
+  const points = projeterSoldeJournalier({
+    soldeDepart,
+    charges: chargesCourantes,
+    transactionsFutures,
+    dateDebut,
+    nombreJours: 365,
+  })
+  const mensuel = resumeMensuel({
+    soldeDepart,
+    charges: chargesCourantes,
+    transactionsFutures,
+    dateDebut,
+    nombreMois: 12,
+  })
   const alertes = moisAvecAlerte(points, seuil)
 
   const donneesGraphique = points.map((p) => ({ date: p.date, solde: Math.round(p.solde * 100) / 100 }))

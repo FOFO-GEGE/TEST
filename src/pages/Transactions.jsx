@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, Pencil, Trash2, ArrowDownCircle, ArrowUpCircle, Upload } from 'lucide-react'
+import { Plus, Pencil, Trash2, ArrowDownCircle, ArrowUpCircle } from 'lucide-react'
 import { db } from '../db.js'
 import { formatMontant, formatDate, todayISO } from '../lib/format.js'
 import Modal from '../components/Modal.jsx'
-import ImportCsvModal from '../components/ImportCsvModal.jsx'
 
 const inputCls =
   'w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none'
@@ -34,7 +33,6 @@ export default function Transactions() {
   const [filtres, setFiltres] = useState(FILTRES_VIDES)
   const [edition, setEdition] = useState(null)
   const [saisieRapide, setSaisieRapide] = useState({ signe: 'depense', montant: '', libelle: '', categorieId: '' })
-  const [importCsvOuvert, setImportCsvOuvert] = useState(false)
 
   if (!transactions || !comptes || !categories) return null
 
@@ -99,15 +97,7 @@ export default function Transactions() {
 
   return (
     <div className="p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-slate-100">Transactions</h1>
-        <button
-          onClick={() => setImportCsvOuvert(true)}
-          className="flex items-center gap-1 text-sm text-emerald-400"
-        >
-          <Upload size={16} /> Importer un CSV
-        </button>
-      </div>
+      <h1 className="mb-4 text-xl font-semibold text-slate-100">Transactions</h1>
 
       <form onSubmit={enregistrerSaisieRapide} className="mb-4 rounded-xl bg-slate-900 p-4">
         <div className="mb-2 flex items-center gap-2">
@@ -226,10 +216,6 @@ export default function Transactions() {
           )
         })}
       </ul>
-
-      {importCsvOuvert && (
-        <ImportCsvModal comptes={comptes} categories={categories} onClose={() => setImportCsvOuvert(false)} />
-      )}
 
       {edition && (
         <Modal titre="Modifier la transaction" onClose={fermerEdition}>

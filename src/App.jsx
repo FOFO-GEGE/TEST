@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import BottomNav from './components/BottomNav.jsx'
 import Accueil from './pages/Accueil.jsx'
 import Charges from './pages/Charges.jsx'
 import Transactions from './pages/Transactions.jsx'
-import Previsionnel from './pages/Previsionnel.jsx'
 import Reglages from './pages/Reglages.jsx'
+
+// Recharts alourdit sensiblement le bundle : chargé à la demande seulement.
+const Previsionnel = lazy(() => import('./pages/Previsionnel.jsx'))
 
 const PAGES = {
   accueil: Accueil,
@@ -21,7 +23,9 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="mx-auto max-w-lg pb-20">
-        <Page />
+        <Suspense fallback={<div className="p-4 text-sm text-slate-500">Chargement…</div>}>
+          <Page />
+        </Suspense>
       </div>
       <BottomNav page={page} onNavigate={setPage} />
     </div>

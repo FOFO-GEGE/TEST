@@ -1,10 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { CheckCircle } from 'lucide-react'
+import { CheckCircle, AlertTriangle } from 'lucide-react'
 import { db } from '../db.js'
 import { formatMontant, formatDate, todayISO } from '../lib/format.js'
 import { soldeCompte, totalComptesCourants } from '../lib/soldes.js'
 import { calculerResteAVivre, estRapprochee } from '../lib/resteAVivre.js'
 import { getOccurrences } from '../lib/occurrences.js'
+import { projeterSoldeJournalier, premierePassageSousSeuil } from '../lib/projection.js'
+import { getSeuilAlerte } from '../lib/parametres.js'
 import ExportReminderBanner from '../components/ExportReminderBanner.jsx'
 
 export default function Accueil() {
@@ -29,6 +31,17 @@ export default function Accueil() {
   dans30Jours.setDate(dans30Jours.getDate() + 30)
   const echeances = getOccurrences(charges, todayISO(), dans30Jours.toISOString().slice(0, 10))
 
+  const comptesCourantsIds = new Set(comptes.filter((c) => c.type === 'courant' && !c.archive).map((c) => c.id))
+  const chargesCourantes = charges.filter((c) => comptesCourantsIds.has(c.compteId))
+  const seuil = getSeuilAlerte()
+  const projection = projeterSoldeJournalier({
+    soldeDepart: soldeCourants,
+    charges: chargesCourantes,
+    dateDebut: todayISO(),
+    nombreJours: 365,
+  })
+  const alerteSeuil = premierePassageSousSeuil(projection, seuil)
+
   const rapprocher = async (occurrence) => {
     const charge = charges.find((c) => c.id === occurrence.chargeId)
     if (!charge) return
@@ -46,6 +59,15 @@ export default function Accueil() {
   return (
     <div>
       <ExportReminderBanner />
+      {alerteSeuil && (
+        <div className="mx-4 mt-4 flex items-center gap-2 rounded-lg border border-red-900 bg-red-950/50 px-3 py-2 text-xs text-red-300">
+          <AlertTriangle size={16} className="shrink-0" />
+          <span>
+            Solde projeté sous le seuil ({formatMontant(seuil)}) le {formatDate(alerteSeuil.date)} :{' '}
+            {formatMontant(alerteSeuil.solde)}.
+          </span>
+        </div>
+      )}
 
       <div className="p-4">
         <div className="rounded-2xl bg-gradient-to-br from-emerald-700 to-emerald-900 p-5 text-center shadow-lg">

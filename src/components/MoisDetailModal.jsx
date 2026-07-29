@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { parseISO, format, endOfMonth } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { CalendarCog, Repeat, Plus, ArrowDownCircle, ArrowUpCircle, Trash2 } from 'lucide-react'
+import { CalendarCog, Repeat, Plus, ArrowDownCircle, ArrowUpCircle, Trash2, Pencil } from 'lucide-react'
 import { db } from '../db.js'
 import { getOccurrences } from '../lib/occurrences.js'
 import { formatMontant, formatDate, todayISO } from '../lib/format.js'
 import Modal from './Modal.jsx'
 import ChargeFormModal from './ChargeFormModal.jsx'
 import AjustementMoisModal from './AjustementMoisModal.jsx'
+import TransactionFormModal from './TransactionFormModal.jsx'
 
 const inputCls =
   'w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none'
@@ -27,6 +28,7 @@ export default function MoisDetailModal({ mois, charges, ajustements, transactio
 
   const [chargeEnEdition, setChargeEnEdition] = useState(null)
   const [chargeEnAjustement, setChargeEnAjustement] = useState(null)
+  const [mouvementEnEdition, setMouvementEnEdition] = useState(null)
   const [mouvement, setMouvement] = useState({
     signe: 'depense',
     montant: '',
@@ -137,6 +139,12 @@ export default function MoisDetailModal({ mois, charges, ajustements, transactio
                         {formatMontant(t.montant)}
                       </span>
                       <button
+                        onClick={() => setMouvementEnEdition(t)}
+                        className="rounded-full p-1.5 text-slate-400 hover:bg-slate-700"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
                         onClick={() => supprimerMouvement(t)}
                         className="rounded-full p-1.5 text-slate-400 hover:bg-slate-700"
                       >
@@ -243,6 +251,15 @@ export default function MoisDetailModal({ mois, charges, ajustements, transactio
           comptes={comptes}
           categories={categories}
           onClose={() => setChargeEnEdition(null)}
+        />
+      )}
+
+      {mouvementEnEdition && (
+        <TransactionFormModal
+          transaction={mouvementEnEdition}
+          comptes={comptes}
+          categories={categories}
+          onClose={() => setMouvementEnEdition(null)}
         />
       )}
     </Modal>

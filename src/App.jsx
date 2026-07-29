@@ -1,7 +1,6 @@
 import { useState, lazy, Suspense } from 'react'
 import BottomNav from './components/BottomNav.jsx'
 import Charges from './pages/Charges.jsx'
-import Transactions from './pages/Transactions.jsx'
 import Reglages from './pages/Reglages.jsx'
 
 // Recharts alourdit sensiblement le bundle : chargé à la demande seulement.
@@ -10,7 +9,6 @@ const Previsionnel = lazy(() => import('./pages/Previsionnel.jsx'))
 const PAGES = {
   previsionnel: Previsionnel,
   charges: Charges,
-  transactions: Transactions,
   reglages: Reglages,
 }
 

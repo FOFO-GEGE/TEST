@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
-import { AlertTriangle, ChevronRight } from 'lucide-react'
+import { AlertTriangle, ChevronRight, List } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { db } from '../db.js'
@@ -11,6 +11,7 @@ import { calculerResteAVivre } from '../lib/resteAVivre.js'
 import { getSeuilAlerte } from '../lib/parametres.js'
 import { formatMontant, formatDate, todayISO } from '../lib/format.js'
 import MoisDetailModal from '../components/MoisDetailModal.jsx'
+import TousMouvementsModal from '../components/TousMouvementsModal.jsx'
 import ExportReminderBanner from '../components/ExportReminderBanner.jsx'
 
 export default function Previsionnel() {
@@ -20,6 +21,7 @@ export default function Previsionnel() {
   const categories = useLiveQuery(() => db.categories.toArray(), [])
   const ajustements = useLiveQuery(() => db.ajustements.toArray(), [])
   const [moisSelectionne, setMoisSelectionne] = useState(null)
+  const [tousMouvementsOuvert, setTousMouvementsOuvert] = useState(false)
 
   if (!comptes || !charges || !transactions || !categories || !ajustements) return null
 
@@ -73,20 +75,20 @@ export default function Previsionnel() {
 
   const donneesGraphique = points.map((p) => ({ date: p.date, solde: Math.round(p.solde * 100) / 100 }))
 
-  // Cliquer sur la courbe ouvre le mois du point touché, comme une ligne
-  // du tableau : sur mobile c'est le geste le plus naturel pour « ce creux
-  // de novembre, qu'est-ce qui le cause ? ».
-  const ouvrirMoisDepuisGraphique = (etat) => {
-    const dateCliquee = etat?.activeLabel
-    if (typeof dateCliquee === 'string') setMoisSelectionne(dateCliquee.slice(0, 7))
-  }
-
   return (
     <div>
       <ExportReminderBanner />
 
       <div className="p-4">
-        <h1 className="mb-3 text-xl font-semibold text-slate-100">Prévisionnel 12 mois</h1>
+        <div className="mb-3 flex items-center justify-between">
+          <h1 className="text-xl font-semibold text-slate-100">Prévisionnel 12 mois</h1>
+          <button
+            onClick={() => setTousMouvementsOuvert(true)}
+            className="flex items-center gap-1 text-sm text-emerald-400"
+          >
+            <List size={16} /> Tous les mouvements
+          </button>
+        </div>
 
         <div className="mb-3 rounded-2xl bg-gradient-to-br from-emerald-700 to-emerald-900 p-4 text-center shadow-lg">
           <div className="text-xs uppercase tracking-wide text-emerald-200">Reste à vivre</div>
@@ -118,7 +120,7 @@ export default function Previsionnel() {
 
       <div className="mb-6 h-64 rounded-xl bg-slate-900 p-3">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={donneesGraphique} onClick={ouvrirMoisDepuisGraphique} style={{ cursor: 'pointer' }}>
+          <LineChart data={donneesGraphique}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
             <XAxis
               dataKey="date"
@@ -187,6 +189,15 @@ export default function Previsionnel() {
             comptes={comptesCourants}
             categories={categories}
             onClose={() => setMoisSelectionne(null)}
+          />
+        )}
+
+        {tousMouvementsOuvert && (
+          <TousMouvementsModal
+            transactions={transactions}
+            comptes={comptes}
+            categories={categories}
+            onClose={() => setTousMouvementsOuvert(false)}
           />
         )}
       </div>

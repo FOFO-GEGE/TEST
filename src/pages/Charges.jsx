@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, Pencil, Power } from 'lucide-react'
+import { Plus, Pencil, Power, CreditCard } from 'lucide-react'
 import { db } from '../db.js'
-import { formatMontant } from '../lib/format.js'
+import { formatMontant, formatDate } from '../lib/format.js'
 import ChargeFormModal, { FREQUENCES } from '../components/ChargeFormModal.jsx'
+import CreditFormModal from '../components/CreditFormModal.jsx'
 
 export default function Charges() {
   const charges = useLiveQuery(() => db.chargesRecurrentes.toArray(), [])
@@ -11,6 +12,7 @@ export default function Charges() {
   const categories = useLiveQuery(() => db.categories.toArray(), [])
   const [edition, setEdition] = useState(null)
   const [ajoutOuvert, setAjoutOuvert] = useState(false)
+  const [creditOuvert, setCreditOuvert] = useState(false)
 
   const basculerActive = (c) => db.chargesRecurrentes.update(c.id, { active: !c.active })
 
@@ -28,19 +30,31 @@ export default function Charges() {
       return somme + c.montant / diviseur
     }, 0)
 
+  const desactive = comptes.length === 0 || categories.length === 0
+
   return (
     <div className="p-5">
-      <div className="mb-5 flex items-start justify-between">
+      <div className="mb-3 flex items-start justify-between">
         <div>
           <div className="label">Charges</div>
           <h1 className="mt-0.5 font-display text-3xl italic text-ink">Récurrentes</h1>
         </div>
         <button
           onClick={() => setAjoutOuvert(true)}
-          disabled={comptes.length === 0 || categories.length === 0}
+          disabled={desactive}
           className="flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-xs font-medium text-cream disabled:opacity-30"
         >
           <Plus size={14} /> Ajouter
+        </button>
+      </div>
+
+      <div className="mb-5 flex justify-end">
+        <button
+          onClick={() => setCreditOuvert(true)}
+          disabled={desactive}
+          className="flex items-center gap-1.5 rounded-full border border-line bg-white px-3.5 py-2 text-xs font-medium text-ink disabled:opacity-30"
+        >
+          <CreditCard size={14} /> Crédit en plusieurs mois
         </button>
       </div>
 
@@ -49,7 +63,7 @@ export default function Charges() {
         <div className="mt-1 font-display text-3xl italic text-ink">{formatMontant(totalMensuelLisse)}</div>
       </div>
 
-      {comptes.length === 0 || categories.length === 0 ? (
+      {desactive ? (
         <p className="rounded-2xl bg-card p-6 text-center text-sm text-ink-muted">
           Créez d'abord un compte et une catégorie dans les réglages.
         </p>
@@ -74,6 +88,7 @@ export default function Charges() {
                     <div className="text-sm font-medium text-ink">{c.libelle}</div>
                     <div className="text-xs text-ink-muted">
                       {compte?.nom} · {categorie?.nom} · jour {c.jourPrelevement}
+                      {c.dateFin ? ` · jusqu'au ${formatDate(c.dateFin)}` : ''}
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
@@ -100,6 +115,9 @@ export default function Charges() {
       )}
       {edition && (
         <ChargeFormModal charge={edition} comptes={comptes} categories={categories} onClose={() => setEdition(null)} />
+      )}
+      {creditOuvert && (
+        <CreditFormModal comptes={comptes} categories={categories} onClose={() => setCreditOuvert(false)} />
       )}
     </div>
   )

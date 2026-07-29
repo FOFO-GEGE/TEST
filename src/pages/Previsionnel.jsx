@@ -98,17 +98,23 @@ export default function Previsionnel() {
           <div className="font-display text-6xl italic leading-none text-ink">
             {formatMontant(resteAVivre.resteAVivre)}
           </div>
-          <div className="mt-3 flex gap-5 text-sm text-ink-muted">
-            <span>
-              <span className="font-medium text-ink">{resteAVivre.joursRestants}</span> jours restants
-            </span>
-            <span>
-              <span className="font-medium text-ink">{formatMontant(resteAVivre.montantParJour)}</span> / jour
-            </span>
-          </div>
-          {resteAVivre.prochaineDatePaie && (
-            <div className="mt-1 text-sm text-ink-muted">
-              Prochaine paie le {formatDate(resteAVivre.prochaineDatePaie)}
+          {resteAVivre.prochaineDatePaie ? (
+            <>
+              <div className="mt-3 flex gap-5 text-sm text-ink-muted">
+                <span>
+                  <span className="font-medium text-ink">{resteAVivre.joursRestants}</span> jours restants
+                </span>
+                <span>
+                  <span className="font-medium text-ink">{formatMontant(resteAVivre.montantParJour)}</span> / jour
+                </span>
+              </div>
+              <div className="mt-1 text-sm text-ink-muted">
+                Prochaine paie le {formatDate(resteAVivre.prochaineDatePaie)}
+              </div>
+            </>
+          ) : (
+            <div className="mt-3 text-sm text-ink-muted">
+              Ajoutez une charge de type revenu pour calculer la période jusqu'à la prochaine paie.
             </div>
           )}
         </div>

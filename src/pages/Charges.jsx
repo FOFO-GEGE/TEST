@@ -6,15 +6,19 @@ import { formatMontant, formatDate } from '../lib/format.js'
 import ChargeFormModal, { FREQUENCES } from '../components/ChargeFormModal.jsx'
 import CreditFormModal from '../components/CreditFormModal.jsx'
 
+const estCredit = (c) => c.creditMontantTotal != null
+
 export default function Charges() {
   const charges = useLiveQuery(() => db.chargesRecurrentes.toArray(), [])
   const comptes = useLiveQuery(() => db.comptes.toArray(), [])
   const categories = useLiveQuery(() => db.categories.toArray(), [])
   const [edition, setEdition] = useState(null)
+  const [creditEnEdition, setCreditEnEdition] = useState(null)
   const [ajoutOuvert, setAjoutOuvert] = useState(false)
   const [creditOuvert, setCreditOuvert] = useState(false)
 
   const basculerActive = (c) => db.chargesRecurrentes.update(c.id, { active: !c.active })
+  const ouvrirEdition = (c) => (estCredit(c) ? setCreditEnEdition(c) : setEdition(c))
 
   if (!charges || !comptes || !categories) return null
 
@@ -85,7 +89,14 @@ export default function Charges() {
               return (
                 <li key={c.id} className={`flex items-center justify-between px-4 py-3.5 ${c.active ? '' : 'opacity-40'}`}>
                   <div>
-                    <div className="text-sm font-medium text-ink">{c.libelle}</div>
+                    <div className="flex items-center gap-1.5 text-sm font-medium text-ink">
+                      {c.libelle}
+                      {estCredit(c) && (
+                        <span className="rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-medium text-gold">
+                          crédit
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-ink-muted">
                       {compte?.nom} · {categorie?.nom} · jour {c.jourPrelevement}
                       {c.dateFin ? ` · jusqu'au ${formatDate(c.dateFin)}` : ''}
@@ -99,7 +110,7 @@ export default function Charges() {
                     <button onClick={() => basculerActive(c)} className="rounded-full p-2 text-ink-muted hover:bg-subtle">
                       <Power size={16} />
                     </button>
-                    <button onClick={() => setEdition(c)} className="rounded-full p-2 text-ink-muted hover:bg-subtle">
+                    <button onClick={() => ouvrirEdition(c)} className="rounded-full p-2 text-ink-muted hover:bg-subtle">
                       <Pencil size={16} />
                     </button>
                   </div>
@@ -117,7 +128,15 @@ export default function Charges() {
         <ChargeFormModal charge={edition} comptes={comptes} categories={categories} onClose={() => setEdition(null)} />
       )}
       {creditOuvert && (
-        <CreditFormModal comptes={comptes} categories={categories} onClose={() => setCreditOuvert(false)} />
+        <CreditFormModal charge={null} comptes={comptes} categories={categories} onClose={() => setCreditOuvert(false)} />
+      )}
+      {creditEnEdition && (
+        <CreditFormModal
+          charge={creditEnEdition}
+          comptes={comptes}
+          categories={categories}
+          onClose={() => setCreditEnEdition(null)}
+        />
       )}
     </div>
   )

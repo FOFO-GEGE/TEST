@@ -7,21 +7,34 @@ import { inputCls, labelCls, btnPrimaryCls } from './ui.js'
 
 // Un crédit / achat en plusieurs fois n'est pas un nouveau concept dans le
 // modèle : c'est une charge mensuelle ordinaire avec une date de fin fixée
-// pour ne générer que N occurrences. Le montant est calculé à partir du
-// total voulu, réparti sur les mensualités (dernier mois ajusté pour
-// l'arrondi via le mécanisme d'ajustement déjà utilisé pour « ce mois
-// seulement »).
-export default function CreditFormModal({ comptes, categories, onClose }) {
+// pour ne générer que N occurrences. Le montant total et le nombre de
+// mensualités sont conservés sur la charge (creditMontantTotal,
+// creditNombreMois) pour pouvoir tout recalculer proprement à l'édition —
+// sans ça, changer le nombre de mois reviendrait à trafiquer une date de
+// fin brute sans jamais toucher à la mensualité.
+export default function CreditFormModal({ charge, comptes, categories, onClose }) {
   const categoriesDepense = categories.filter((c) => c.type === 'depense')
-  const [form, setForm] = useState({
-    libelle: '',
-    montantTotal: '',
-    nombreMois: 3,
-    moisDepart: todayISO().slice(0, 7),
-    jourPrelevement: 5,
-    compteId: comptes.find((c) => !c.archive)?.id ?? comptes[0]?.id ?? '',
-    categorieId: categoriesDepense[0]?.id ?? '',
-  })
+  const [form, setForm] = useState(() =>
+    charge
+      ? {
+          libelle: charge.libelle,
+          montantTotal: String(charge.creditMontantTotal),
+          nombreMois: charge.creditNombreMois,
+          moisDepart: charge.dateDebut.slice(0, 7),
+          jourPrelevement: charge.jourPrelevement,
+          compteId: charge.compteId,
+          categorieId: charge.categorieId,
+        }
+      : {
+          libelle: '',
+          montantTotal: '',
+          nombreMois: 3,
+          moisDepart: todayISO().slice(0, 7),
+          jourPrelevement: 5,
+          compteId: comptes.find((c) => !c.archive)?.id ?? comptes[0]?.id ?? '',
+          categorieId: categoriesDepense[0]?.id ?? '',
+        }
+  )
 
   const montantTotal = Number(form.montantTotal)
   const nombreMois = Math.max(1, Math.min(60, Number(form.nombreMois) || 1))
@@ -34,10 +47,10 @@ export default function CreditFormModal({ comptes, categories, onClose }) {
     e.preventDefault()
     if (!form.libelle.trim() || !montantTotal || !form.compteId || !form.categorieId || !periode) return
 
-    const [montantBase] = mensualites
+    const montantBase = mensualites[0]
     const montantDernier = mensualites[mensualites.length - 1]
 
-    const chargeId = await db.chargesRecurrentes.add({
+    const donnees = {
       libelle: form.libelle.trim(),
       montant: montantBase,
       type: 'depense',
@@ -49,7 +62,22 @@ export default function CreditFormModal({ comptes, categories, onClose }) {
       dateDebut: periode.dateDebut,
       dateFin: periode.dateFin,
       active: true,
-    })
+      creditMontantTotal: montantTotal,
+      creditNombreMois: nombreMois,
+    }
+
+    let chargeId
+    if (charge) {
+      chargeId = charge.id
+      await db.chargesRecurrentes.update(chargeId, donnees)
+      // La répartition change avec le nombre de mois : les ajustements
+      // existants (dont l'ancienne correction d'arrondi) ne correspondent
+      // plus forcément à rien de valide, on repart d'une base propre.
+      const anciens = await db.ajustements.where('chargeId').equals(chargeId).toArray()
+      await Promise.all(anciens.map((a) => db.ajustements.delete(a.id)))
+    } else {
+      chargeId = await db.chargesRecurrentes.add(donnees)
+    }
 
     if (montantDernier !== montantBase) {
       await db.ajustements.add({
@@ -64,8 +92,14 @@ export default function CreditFormModal({ comptes, categories, onClose }) {
   }
 
   return (
-    <Modal titre="Crédit en plusieurs mois" onClose={onClose}>
+    <Modal titre={charge ? 'Modifier le crédit' : 'Crédit en plusieurs mois'} onClose={onClose}>
       <form onSubmit={enregistrer} className="space-y-3">
+        {charge && (
+          <p className="rounded-2xl bg-card p-4 text-xs leading-relaxed text-ink-muted">
+            Changer le nombre de mois ou le montant total recalcule toutes les mensualités et remplace tout ajustement
+            ponctuel déjà défini sur ce crédit.
+          </p>
+        )}
         <div>
           <label className={labelCls}>Libellé</label>
           <input
@@ -172,7 +206,7 @@ export default function CreditFormModal({ comptes, categories, onClose }) {
         )}
 
         <button type="submit" disabled={!previsualisable} className={btnPrimaryCls}>
-          Enregistrer le crédit
+          {charge ? 'Mettre à jour le crédit' : 'Enregistrer le crédit'}
         </button>
       </form>
     </Modal>

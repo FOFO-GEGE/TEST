@@ -72,21 +72,18 @@ describe('resumeMensuel', () => {
     expect(mois[2].mois).toBe('2024-03')
   })
 
-  it('ne compte pas deux fois une échéance validée à l’avance', () => {
+  it('compte une charge prévue même si une transaction réelle tombe le même mois', () => {
+    // Toute charge prévue est considérée comme certaine : les occurrences ne
+    // sont plus filtrées par rapprochement, une transaction réelle datée
+    // dans le futur s'ajoute donc à l'occurrence plutôt que de la remplacer.
     const charges = [
       charge({ id: 1, libelle: 'Salaire', type: 'revenu', montant: 2230, jourPrelevement: 5 }),
       charge({ id: 2, libelle: 'Loyer', type: 'depense', montant: 1802, jourPrelevement: 10 }),
     ]
-    // Les deux échéances de février ont été validées à l'avance : elles
-    // existent déjà comme transactions réelles datées dans le futur.
-    const transactions = [
-      { chargeId: 1, date: '2024-02-05', montant: 2230 },
-      { chargeId: 2, date: '2024-02-10', montant: -1802 },
-    ]
+    const transactions = [{ date: '2024-02-15', montant: -50 }]
     const mois = resumeMensuel({ soldeDepart: 0, charges, transactions, dateDebut: '2024-01-01', nombreMois: 3 })
-    expect(mois[1]).toMatchObject({ mois: '2024-02', revenus: 2230, depenses: 1802 })
+    expect(mois[1]).toMatchObject({ mois: '2024-02', revenus: 2230, depenses: 1802 + 50 })
     expect(mois[0]).toMatchObject({ revenus: 2230, depenses: 1802 })
-    expect(mois[2]).toMatchObject({ revenus: 2230, depenses: 1802 })
   })
 
   it('n’applique un ajustement de charge qu’au mois visé', () => {

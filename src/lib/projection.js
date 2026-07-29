@@ -1,17 +1,7 @@
 import { addDays, addMonths, format, startOfMonth, endOfMonth, parseISO } from 'date-fns'
-import { getOccurrences, estRapprochee } from './occurrences.js'
+import { getOccurrences } from './occurrences.js'
 
 const JOURS_PROJECTION_DEFAUT = 365
-
-/**
- * Occurrences à venir qui ne correspondent à aucune transaction réelle.
- * Une échéance validée à l'avance existe déjà comme transaction : la
- * compter en plus de son occurrence prévue ferait apparaître la charge
- * deux fois dans le mois concerné.
- */
-function occurrencesNonRapprochees(charges, dateDebut, dateFin, ajustements, transactions) {
-  return getOccurrences(charges, dateDebut, dateFin, ajustements).filter((o) => !estRapprochee(o, transactions))
-}
 
 /**
  * Fonction pure : projette le solde jour par jour à partir des occurrences
@@ -30,7 +20,7 @@ export function projeterSoldeJournalier({
 }) {
   const debut = parseISO(dateDebut)
   const dateFin = format(addDays(debut, nombreJours), 'yyyy-MM-dd')
-  const occurrences = occurrencesNonRapprochees(charges, dateDebut, dateFin, ajustements, transactions)
+  const occurrences = getOccurrences(charges, dateDebut, dateFin, ajustements)
   const transactionsFutures = transactions.filter((t) => t.date > dateDebut)
 
   const variationParJour = new Map()
@@ -62,7 +52,7 @@ export function resumeMensuel({
 }) {
   const debut = parseISO(dateDebut)
   const dateFin = format(endOfMonth(addMonths(debut, nombreMois - 1)), 'yyyy-MM-dd')
-  const occurrences = occurrencesNonRapprochees(charges, dateDebut, dateFin, ajustements, transactions)
+  const occurrences = getOccurrences(charges, dateDebut, dateFin, ajustements)
   const transactionsFutures = transactions.filter((t) => t.date > dateDebut)
 
   const mois = []

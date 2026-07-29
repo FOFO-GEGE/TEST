@@ -7,9 +7,12 @@ import { getOccurrences } from '../lib/occurrences.js'
 import { formatMontant, formatDate, todayISO } from '../lib/format.js'
 import Modal from './Modal.jsx'
 import ChargeFormModal from './ChargeFormModal.jsx'
+import CreditFormModal from './CreditFormModal.jsx'
 import AjustementMoisModal from './AjustementMoisModal.jsx'
 import TransactionFormModal from './TransactionFormModal.jsx'
 import { inputCls, labelCls, btnPrimaryCls } from './ui.js'
+
+const estCredit = (c) => c.creditMontantTotal != null
 
 export default function MoisDetailModal({ mois, charges, ajustements, transactions, comptes, categories, onClose }) {
   const debutMois = parseISO(`${mois}-01`)
@@ -24,6 +27,7 @@ export default function MoisDetailModal({ mois, charges, ajustements, transactio
     .sort((a, b) => a.date.localeCompare(b.date))
 
   const [chargeEnEdition, setChargeEnEdition] = useState(null)
+  const [creditEnEdition, setCreditEnEdition] = useState(null)
   const [chargeEnAjustement, setChargeEnAjustement] = useState(null)
   const [mouvementEnEdition, setMouvementEnEdition] = useState(null)
   const [mouvement, setMouvement] = useState({
@@ -72,6 +76,11 @@ export default function MoisDetailModal({ mois, charges, ajustements, transactio
                       <div>
                         <div className="flex items-center gap-1.5 text-sm text-ink">
                           {o.libelle}
+                          {charge && estCredit(charge) && (
+                            <span className="rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-medium text-gold">
+                              crédit
+                            </span>
+                          )}
                           {o.ajuste && (
                             <span className="rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-medium text-gold">
                               ajusté
@@ -94,7 +103,7 @@ export default function MoisDetailModal({ mois, charges, ajustements, transactio
                           <CalendarCog size={13} /> Ce mois seulement
                         </button>
                         <button
-                          onClick={() => setChargeEnEdition(charge)}
+                          onClick={() => (estCredit(charge) ? setCreditEnEdition(charge) : setChargeEnEdition(charge))}
                           className="flex flex-1 items-center justify-center gap-1 rounded-full py-2 text-xs font-medium text-ink-muted"
                         >
                           <Repeat size={13} /> Tous les mois
@@ -241,6 +250,15 @@ export default function MoisDetailModal({ mois, charges, ajustements, transactio
           comptes={comptes}
           categories={categories}
           onClose={() => setChargeEnEdition(null)}
+        />
+      )}
+
+      {creditEnEdition && (
+        <CreditFormModal
+          charge={creditEnEdition}
+          comptes={comptes}
+          categories={categories}
+          onClose={() => setCreditEnEdition(null)}
         />
       )}
 

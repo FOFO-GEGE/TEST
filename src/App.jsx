@@ -1,6 +1,5 @@
 import { useState, lazy, Suspense } from 'react'
 import BottomNav from './components/BottomNav.jsx'
-import Accueil from './pages/Accueil.jsx'
 import Charges from './pages/Charges.jsx'
 import Transactions from './pages/Transactions.jsx'
 import Reglages from './pages/Reglages.jsx'
@@ -9,15 +8,14 @@ import Reglages from './pages/Reglages.jsx'
 const Previsionnel = lazy(() => import('./pages/Previsionnel.jsx'))
 
 const PAGES = {
-  accueil: Accueil,
+  previsionnel: Previsionnel,
   charges: Charges,
   transactions: Transactions,
-  previsionnel: Previsionnel,
   reglages: Reglages,
 }
 
 export default function App() {
-  const [page, setPage] = useState('accueil')
+  const [page, setPage] = useState('previsionnel')
   const Page = PAGES[page]
 
   return (

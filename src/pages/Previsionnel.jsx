@@ -6,10 +6,12 @@ import { format, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { db } from '../db.js'
 import { totalComptesCourants } from '../lib/soldes.js'
-import { projeterSoldeJournalier, resumeMensuel, moisAvecAlerte } from '../lib/projection.js'
+import { projeterSoldeJournalier, resumeMensuel, moisAvecAlerte, premierePassageSousSeuil } from '../lib/projection.js'
+import { calculerResteAVivre } from '../lib/resteAVivre.js'
 import { getSeuilAlerte } from '../lib/parametres.js'
-import { formatMontant, todayISO } from '../lib/format.js'
+import { formatMontant, formatDate, todayISO } from '../lib/format.js'
 import MoisDetailModal from '../components/MoisDetailModal.jsx'
+import ExportReminderBanner from '../components/ExportReminderBanner.jsx'
 
 export default function Previsionnel() {
   const comptes = useLiveQuery(() => db.comptes.toArray(), [])
@@ -60,6 +62,14 @@ export default function Previsionnel() {
     nombreMois: 12,
   })
   const alertes = moisAvecAlerte(points, seuil)
+  const alerteSeuil = premierePassageSousSeuil(points, seuil)
+  const resteAVivre = calculerResteAVivre({
+    charges: chargesCourantes,
+    transactions: transactionsCourantes,
+    ajustements,
+    soldeComptesCourants: soldeDepart,
+    aujourdHui: new Date(),
+  })
 
   const donneesGraphique = points.map((p) => ({ date: p.date, solde: Math.round(p.solde * 100) / 100 }))
 
@@ -72,12 +82,39 @@ export default function Previsionnel() {
   }
 
   return (
-    <div className="p-4">
-      <h1 className="mb-1 text-xl font-semibold text-slate-100">Prévisionnel 12 mois</h1>
-      <p className="mb-4 text-xs text-slate-500">
-        Solde des comptes courants projeté à partir des charges récurrentes actives. Seuil d'alerte : {formatMontant(seuil)}.
-        Cliquez sur un mois pour réadapter une charge ou ajouter un mouvement exceptionnel.
-      </p>
+    <div>
+      <ExportReminderBanner />
+
+      <div className="p-4">
+        <h1 className="mb-3 text-xl font-semibold text-slate-100">Prévisionnel 12 mois</h1>
+
+        <div className="mb-3 rounded-2xl bg-gradient-to-br from-emerald-700 to-emerald-900 p-4 text-center shadow-lg">
+          <div className="text-xs uppercase tracking-wide text-emerald-200">Reste à vivre</div>
+          <div className="mt-0.5 text-3xl font-bold text-white">{formatMontant(resteAVivre.resteAVivre)}</div>
+          <div className="mt-1 flex justify-center gap-4 text-xs text-emerald-200">
+            <span>{resteAVivre.joursRestants} jours restants</span>
+            <span>{formatMontant(resteAVivre.montantParJour)} / jour</span>
+          </div>
+          {resteAVivre.prochaineDatePaie && (
+            <div className="mt-1 text-xs text-emerald-300">
+              Prochaine paie le {formatDate(resteAVivre.prochaineDatePaie)}
+            </div>
+          )}
+        </div>
+
+        {alerteSeuil && (
+          <div className="mb-3 flex items-center gap-2 rounded-lg border border-red-900 bg-red-950/50 px-3 py-2 text-xs text-red-300">
+            <AlertTriangle size={16} className="shrink-0" />
+            <span>
+              Solde projeté sous le seuil ({formatMontant(seuil)}) le {formatDate(alerteSeuil.date)} :{' '}
+              {formatMontant(alerteSeuil.solde)}.
+            </span>
+          </div>
+        )}
+
+        <p className="mb-4 text-xs text-slate-500">
+          Touchez un mois pour voir son détail, ajuster une charge ou ajouter un mouvement.
+        </p>
 
       <div className="mb-6 h-64 rounded-xl bg-slate-900 p-3">
         <ResponsiveContainer width="100%" height="100%">
@@ -141,16 +178,18 @@ export default function Previsionnel() {
         </table>
       </div>
 
-      {moisSelectionne && (
-        <MoisDetailModal
-          mois={moisSelectionne}
-          charges={chargesCourantes}
-          ajustements={ajustements}
-          comptes={comptesCourants}
-          categories={categories}
-          onClose={() => setMoisSelectionne(null)}
-        />
-      )}
+        {moisSelectionne && (
+          <MoisDetailModal
+            mois={moisSelectionne}
+            charges={chargesCourantes}
+            ajustements={ajustements}
+            transactions={transactionsCourantes}
+            comptes={comptesCourants}
+            categories={categories}
+            onClose={() => setMoisSelectionne(null)}
+          />
+        )}
+      </div>
     </div>
   )
 }

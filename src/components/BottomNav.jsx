@@ -1,10 +1,9 @@
-import { Home, Repeat, List, TrendingUp, Settings } from 'lucide-react'
+import { Repeat, List, TrendingUp, Settings } from 'lucide-react'
 
 const ONGLETS = [
-  { id: 'accueil', label: 'Accueil', Icon: Home },
+  { id: 'previsionnel', label: 'Prévision', Icon: TrendingUp },
   { id: 'charges', label: 'Charges', Icon: Repeat },
   { id: 'transactions', label: 'Mouvements', Icon: List },
-  { id: 'previsionnel', label: 'Prévision', Icon: TrendingUp },
   { id: 'reglages', label: 'Réglages', Icon: Settings },
 ]
 

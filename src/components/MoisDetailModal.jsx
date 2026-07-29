@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { parseISO, format, endOfMonth } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { CalendarCog, Repeat, Plus, ArrowDownCircle, ArrowUpCircle } from 'lucide-react'
+import { CalendarCog, Repeat, Plus, ArrowDownCircle, ArrowUpCircle, Trash2 } from 'lucide-react'
 import { db } from '../db.js'
 import { getOccurrences } from '../lib/occurrences.js'
 import { formatMontant, formatDate, todayISO } from '../lib/format.js'
@@ -13,13 +13,17 @@ const inputCls =
   'w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none'
 const labelCls = 'mb-1 block text-xs font-medium text-slate-400'
 
-export default function MoisDetailModal({ mois, charges, ajustements, comptes, categories, onClose }) {
+export default function MoisDetailModal({ mois, charges, ajustements, transactions, comptes, categories, onClose }) {
   const debutMois = parseISO(`${mois}-01`)
   const debutMoisISO = format(debutMois, 'yyyy-MM-dd')
   const finMoisISO = format(endOfMonth(debutMois), 'yyyy-MM-dd')
   const occurrences = getOccurrences(charges, debutMoisISO, finMoisISO, ajustements)
   const aujourdHui = todayISO()
   const dateParDefaut = aujourdHui >= debutMoisISO && aujourdHui <= finMoisISO ? aujourdHui : debutMoisISO
+
+  const mouvementsDuMois = transactions
+    .filter((t) => t.date >= debutMoisISO && t.date <= finMoisISO)
+    .sort((a, b) => a.date.localeCompare(b.date))
 
   const [chargeEnEdition, setChargeEnEdition] = useState(null)
   const [chargeEnAjustement, setChargeEnAjustement] = useState(null)
@@ -46,6 +50,10 @@ export default function MoisDetailModal({ mois, charges, ajustements, comptes, c
       note: null,
     })
     setMouvement({ ...mouvement, montant: '', libelle: '' })
+  }
+
+  const supprimerMouvement = async (t) => {
+    if (confirm(`Supprimer le mouvement « ${t.libelle} » ?`)) await db.transactions.delete(t.id)
   }
 
   return (
@@ -104,7 +112,46 @@ export default function MoisDetailModal({ mois, charges, ajustements, comptes, c
         </section>
 
         <section>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Mouvement exceptionnel</h3>
+          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
+            Mouvements réels du mois
+          </h3>
+          {mouvementsDuMois.length === 0 ? (
+            <p className="rounded-lg bg-slate-800 p-3 text-center text-xs text-slate-500">
+              Aucun mouvement saisi pour ce mois.
+            </p>
+          ) : (
+            <ul className="divide-y divide-slate-700 rounded-lg bg-slate-800">
+              {mouvementsDuMois.map((t) => {
+                const categorie = categories.find((c) => c.id === t.categorieId)
+                const compte = comptes.find((c) => c.id === t.compteId)
+                return (
+                  <li key={t.id} className="flex items-center justify-between px-3 py-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm text-slate-200">{t.libelle}</div>
+                      <div className="truncate text-xs text-slate-500">
+                        {formatDate(t.date)} · {categorie?.nom} · {compte?.nom}
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className={`text-sm font-medium ${t.montant < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                        {formatMontant(t.montant)}
+                      </span>
+                      <button
+                        onClick={() => supprimerMouvement(t)}
+                        className="rounded-full p-1.5 text-slate-400 hover:bg-slate-700"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </section>
+
+        <section>
+          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Ajouter un mouvement</h3>
           <form onSubmit={ajouterMouvement} className="space-y-2 rounded-lg bg-slate-800 p-3">
             <div className="flex items-center gap-2">
               <button

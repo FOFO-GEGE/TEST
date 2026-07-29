@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, Pencil, Power, CreditCard } from 'lucide-react'
+import { Plus, Pencil, Power, CreditCard, Trash2 } from 'lucide-react'
 import { db } from '../db.js'
 import { formatMontant, formatDate } from '../lib/format.js'
 import ChargeFormModal, { FREQUENCES } from '../components/ChargeFormModal.jsx'
@@ -19,6 +19,13 @@ export default function Charges() {
 
   const basculerActive = (c) => db.chargesRecurrentes.update(c.id, { active: !c.active })
   const ouvrirEdition = (c) => (estCredit(c) ? setCreditEnEdition(c) : setEdition(c))
+
+  const supprimerCharge = async (c) => {
+    if (!confirm(`Supprimer définitivement la charge « ${c.libelle} » ? Cette action est irréversible.`)) return
+    await db.chargesRecurrentes.delete(c.id)
+    const ajustementsLies = await db.ajustements.where('chargeId').equals(c.id).toArray()
+    await Promise.all(ajustementsLies.map((a) => db.ajustements.delete(a.id)))
+  }
 
   if (!charges || !comptes || !categories) return null
 
@@ -112,6 +119,9 @@ export default function Charges() {
                     </button>
                     <button onClick={() => ouvrirEdition(c)} className="rounded-full p-2 text-ink-muted hover:bg-subtle">
                       <Pencil size={16} />
+                    </button>
+                    <button onClick={() => supprimerCharge(c)} className="rounded-full p-2 text-ink-muted hover:bg-subtle">
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </li>

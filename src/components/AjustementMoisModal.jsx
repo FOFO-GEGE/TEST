@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { Trash2 } from 'lucide-react'
+import { Ban } from 'lucide-react'
 import { db } from '../db.js'
 import { formatMontant } from '../lib/format.js'
 import Modal from './Modal.jsx'
@@ -67,7 +67,7 @@ export default function AjustementMoisModal({ charge, mois, ajustement, onClose 
         </button>
 
         <button type="button" onClick={annulerEcheance} className={`flex items-center justify-center gap-2 ${btnDangerCls}`}>
-          <Trash2 size={16} /> Pas d'échéance ce mois-ci
+          <Ban size={16} /> Pas d'échéance ce mois-ci
         </button>
 
         {ajustement && (

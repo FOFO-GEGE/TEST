@@ -22,71 +22,60 @@ function charge(overrides) {
 const AUJOURDHUI = new Date(2024, 5, 10) // 10 juin 2024
 
 describe('calculerResteAVivre', () => {
-  it('déduit les dépenses prévues avant la prochaine paie', () => {
+  it('vaut 0 sans aucune charge ni mouvement sur le mois', () => {
+    const resultat = calculerResteAVivre({ charges: [], transactions: [], aujourdHui: AUJOURDHUI })
+    expect(resultat.resteAVivre).toBe(0)
+    expect(resultat.totalRevenus).toBe(0)
+    expect(resultat.totalDepenses).toBe(0)
+    expect(resultat.debutMois).toBe('2024-06-01')
+    expect(resultat.finMois).toBe('2024-06-30')
+  })
+
+  it('fait la différence entre entrées et sorties des charges du mois en cours', () => {
     const charges = [
       charge({ id: 1, libelle: 'Salaire', type: 'revenu', montant: 2000, jourPrelevement: 25 }),
       charge({ id: 2, libelle: 'Abonnement', type: 'depense', montant: 15, jourPrelevement: 20 }),
       charge({ id: 3, libelle: 'Loyer', type: 'depense', montant: 800, jourPrelevement: 5 }),
     ]
-    const resultat = calculerResteAVivre({
-      charges,
-      transactions: [],
-      soldeComptesCourants: 1000,
-      aujourdHui: AUJOURDHUI,
-    })
+    const resultat = calculerResteAVivre({ charges, transactions: [], aujourdHui: AUJOURDHUI })
 
-    expect(resultat.prochaineDatePaie).toBe('2024-06-25')
-    expect(resultat.depensesPrevues.map((o) => o.libelle)).toEqual(['Abonnement'])
-    expect(resultat.resteAVivre).toBe(1000 - 15)
-    expect(resultat.joursRestants).toBe(15)
-    expect(resultat.montantParJour).toBeCloseTo((1000 - 15) / 15)
+    expect(resultat.totalRevenus).toBe(2000)
+    expect(resultat.totalDepenses).toBe(815)
+    expect(resultat.resteAVivre).toBe(2000 - 815)
   })
 
-  it('compte une dépense prévue même si une transaction existe déjà à la même date', () => {
-    // Toute charge prévue est considérée comme certaine : il n'y a plus de
-    // notion de rapprochement à vérifier avant de la compter.
+  it('ignore les charges des autres mois', () => {
     const charges = [
-      charge({ id: 1, libelle: 'Salaire', type: 'revenu', montant: 2000, jourPrelevement: 25 }),
-      charge({ id: 2, libelle: 'Abonnement', type: 'depense', montant: 15, jourPrelevement: 20 }),
+      charge({ id: 1, libelle: 'Loyer juillet', type: 'depense', montant: 800, jourPrelevement: 5, dateDebut: '2024-07-01' }),
     ]
-    const resultat = calculerResteAVivre({
-      charges,
-      transactions: [{ chargeId: 2, date: '2024-06-19', montant: -15 }],
-      soldeComptesCourants: 1000,
-      aujourdHui: AUJOURDHUI,
-    })
-    expect(resultat.depensesPrevues.map((o) => o.libelle)).toEqual(['Abonnement'])
-    expect(resultat.resteAVivre).toBe(1000 - 15)
+    const resultat = calculerResteAVivre({ charges, transactions: [], aujourdHui: AUJOURDHUI })
+    expect(resultat.resteAVivre).toBe(0)
   })
 
-  it('ajoute les revenus prévus sur la période hors la prochaine paie elle-même', () => {
-    const charges = [
-      charge({ id: 1, libelle: 'Salaire', type: 'revenu', montant: 2000, jourPrelevement: 25 }),
-      charge({ id: 2, libelle: 'Remboursement', type: 'revenu', montant: 50, jourPrelevement: 25 }),
-    ]
+  it('tient compte des mouvements réels du mois en plus des charges', () => {
+    const charges = [charge({ id: 1, libelle: 'Loyer', type: 'depense', montant: 800, jourPrelevement: 5 })]
     const resultat = calculerResteAVivre({
       charges,
-      transactions: [],
-      soldeComptesCourants: 1000,
+      transactions: [
+        { date: '2024-06-12', montant: -30 },
+        { date: '2024-06-15', montant: 100 },
+        { date: '2024-07-01', montant: -9999 }, // hors du mois en cours, ignoré
+      ],
       aujourdHui: AUJOURDHUI,
     })
-    expect(resultat.prochaineDatePaie).toBe('2024-06-25')
-    expect(resultat.revenusPrevus.map((o) => o.libelle)).toEqual(['Remboursement'])
-    expect(resultat.resteAVivre).toBe(1000 + 50)
+    expect(resultat.totalDepenses).toBe(830)
+    expect(resultat.totalRevenus).toBe(100)
+    expect(resultat.resteAVivre).toBe(100 - 830)
   })
 
-  it('retourne le solde tel quel si aucune charge de revenu n’est active', () => {
+  it('applique les ajustements du mois (montant modifié ou échéance annulée)', () => {
     const charges = [charge({ id: 1, libelle: 'Loyer', type: 'depense', montant: 800, jourPrelevement: 5 })]
     const resultat = calculerResteAVivre({
       charges,
       transactions: [],
-      soldeComptesCourants: 1000,
+      ajustements: [{ chargeId: 1, mois: '2024-06', montant: 750, annulee: false }],
       aujourdHui: AUJOURDHUI,
     })
-    expect(resultat.resteAVivre).toBe(1000)
-    expect(resultat.joursRestants).toBeNull()
-    expect(resultat.montantParJour).toBeNull()
-    expect(resultat.prochaineDatePaie).toBeNull()
-    expect(resultat.depensesPrevues).toEqual([])
+    expect(resultat.totalDepenses).toBe(750)
   })
 })

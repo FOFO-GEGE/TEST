@@ -69,7 +69,6 @@ export default function Previsionnel() {
     charges: chargesCourantes,
     transactions: transactionsCourantes,
     ajustements,
-    soldeComptesCourants: soldeDepart,
     aujourdHui: new Date(),
   })
 
@@ -98,25 +97,17 @@ export default function Previsionnel() {
           <div className="font-display text-6xl italic leading-none text-ink">
             {formatMontant(resteAVivre.resteAVivre)}
           </div>
-          {resteAVivre.prochaineDatePaie ? (
-            <>
-              <div className="mt-3 flex gap-5 text-sm text-ink-muted">
-                <span>
-                  <span className="font-medium text-ink">{resteAVivre.joursRestants}</span> jours restants
-                </span>
-                <span>
-                  <span className="font-medium text-ink">{formatMontant(resteAVivre.montantParJour)}</span> / jour
-                </span>
-              </div>
-              <div className="mt-1 text-sm text-ink-muted">
-                Prochaine paie le {formatDate(resteAVivre.prochaineDatePaie)}
-              </div>
-            </>
-          ) : (
-            <div className="mt-3 text-sm text-ink-muted">
-              Ajoutez une charge de type revenu pour calculer la période jusqu'à la prochaine paie.
-            </div>
-          )}
+          <div className="mt-3 flex gap-5 text-sm text-ink-muted">
+            <span>
+              <span className="font-medium text-moss">{formatMontant(resteAVivre.totalRevenus)}</span> entrées
+            </span>
+            <span>
+              <span className="font-medium text-rust">{formatMontant(resteAVivre.totalDepenses)}</span> sorties
+            </span>
+          </div>
+          <div className="mt-1 text-sm text-ink-muted">
+            Du {formatDate(resteAVivre.debutMois)} au {formatDate(resteAVivre.finMois)}
+          </div>
         </div>
 
         {alerteSeuil && (

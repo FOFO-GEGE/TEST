@@ -18,7 +18,10 @@ export default function MoisDetailModal({ mois, charges, ajustements, transactio
   const debutMois = parseISO(`${mois}-01`)
   const debutMoisISO = format(debutMois, 'yyyy-MM-dd')
   const finMoisISO = format(endOfMonth(debutMois), 'yyyy-MM-dd')
-  const occurrences = getOccurrences(charges, debutMoisISO, finMoisISO, ajustements)
+  // inclureAnnulees : une échéance annulée pour ce mois doit rester visible
+  // (grisée, réactivable), pas disparaître comme si la charge avait été
+  // supprimée — seuls les totaux financiers l'excluent.
+  const occurrences = getOccurrences(charges, debutMoisISO, finMoisISO, ajustements, { inclureAnnulees: true })
   const aujourdHui = todayISO()
   const dateParDefaut = aujourdHui >= debutMoisISO && aujourdHui <= finMoisISO ? aujourdHui : debutMoisISO
 
@@ -71,7 +74,7 @@ export default function MoisDetailModal({ mois, charges, ajustements, transactio
               {occurrences.map((o, i) => {
                 const charge = charges.find((c) => c.id === o.chargeId)
                 return (
-                  <li key={`${o.chargeId}-${o.date}-${i}`} className="px-4 py-3">
+                  <li key={`${o.chargeId}-${o.date}-${i}`} className={`px-4 py-3 ${o.annule ? 'opacity-40' : ''}`}>
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="flex items-center gap-1.5 text-sm text-ink">
@@ -84,6 +87,11 @@ export default function MoisDetailModal({ mois, charges, ajustements, transactio
                           {o.ajuste && (
                             <span className="rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-medium text-gold">
                               ajusté
+                            </span>
+                          )}
+                          {o.annule && (
+                            <span className="rounded-full bg-subtle px-2 py-0.5 text-[10px] font-medium text-ink-muted">
+                              inactif ce mois
                             </span>
                           )}
                         </div>
@@ -100,14 +108,16 @@ export default function MoisDetailModal({ mois, charges, ajustements, transactio
                           onClick={() => setChargeEnAjustement(charge)}
                           className="flex flex-1 items-center justify-center gap-1 rounded-full border border-line bg-white py-2 text-xs font-medium text-ink"
                         >
-                          <CalendarCog size={13} /> Ce mois seulement
+                          <CalendarCog size={13} /> {o.annule ? 'Réactiver ce mois' : 'Ce mois seulement'}
                         </button>
-                        <button
-                          onClick={() => (estCredit(charge) ? setCreditEnEdition(charge) : setChargeEnEdition(charge))}
-                          className="flex flex-1 items-center justify-center gap-1 rounded-full py-2 text-xs font-medium text-ink-muted"
-                        >
-                          <Repeat size={13} /> Tous les mois
-                        </button>
+                        {!o.annule && (
+                          <button
+                            onClick={() => (estCredit(charge) ? setCreditEnEdition(charge) : setChargeEnEdition(charge))}
+                            className="flex flex-1 items-center justify-center gap-1 rounded-full py-2 text-xs font-medium text-ink-muted"
+                          >
+                            <Repeat size={13} /> Tous les mois
+                          </button>
+                        )}
                       </div>
                     )}
                   </li>

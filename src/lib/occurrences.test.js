@@ -134,6 +134,16 @@ describe('getOccurrences — ajustements ponctuels', () => {
     expect(occ.map((o) => o.date)).toEqual(['2026-08-05', '2026-10-05'])
   })
 
+  it('avec inclureAnnulees, garde l’échéance annulée mais marquée comme telle', () => {
+    const ajustements = [{ chargeId: 1, mois: '2026-09', montant: null, annulee: true }]
+    const occ = getOccurrences([loyer], '2026-08-01', '2026-10-31', ajustements, { inclureAnnulees: true })
+    expect(occ.map((o) => [o.date, o.annule, o.montant])).toEqual([
+      ['2026-08-05', false, 800],
+      ['2026-09-05', true, 800],
+      ['2026-10-05', false, 800],
+    ])
+  })
+
   it('n’applique un ajustement qu’à la charge concernée', () => {
     const autre = charge({ id: 2, libelle: 'Assurance', montant: 30, jourPrelevement: 5 })
     const ajustements = [{ chargeId: 1, mois: '2026-09', montant: 950, annulee: false }]

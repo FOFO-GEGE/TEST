@@ -45,13 +45,21 @@ export function cleAjustement(chargeId, mois) {
 /**
  * Fonction pure : calcule les occurrences prévues d'une liste de charges
  * récurrentes sur une fenêtre de dates, sans aucune dépendance à Dexie.
- * Retourne { chargeId, date, montant, libelle, type, ajuste }[], trié par date.
+ * Retourne { chargeId, date, montant, libelle, type, ajuste, annule }[], trié
+ * par date.
  *
  * `ajustements` porte les exceptions ponctuelles déclarées par l'utilisateur
  * ({ chargeId, mois: 'yyyy-MM', montant, annulee }) : elles ne s'appliquent
  * qu'au mois visé, le modèle de la charge reste inchangé pour les autres.
+ *
+ * Par défaut, une échéance annulée pour un mois n'apparaît pas du tout dans
+ * le résultat (c'est ce que veulent les totaux financiers : projection,
+ * reste à vivre…). `inclureAnnulees: true` les inclut quand même, marquées
+ * `annule: true` — nécessaire pour l'écran de détail d'un mois, où une
+ * échéance annulée doit rester visible et réactivable plutôt que de
+ * disparaître comme si elle avait été supprimée.
  */
-export function getOccurrences(charges, dateDebut, dateFin, ajustements = []) {
+export function getOccurrences(charges, dateDebut, dateFin, ajustements = [], { inclureAnnulees = false } = {}) {
   const debutFenetre = parseISO(dateDebut)
   const finFenetre = parseISO(dateFin)
   const occurrences = []
@@ -91,6 +99,17 @@ export function getOccurrences(charges, dateDebut, dateFin, ajustements = []) {
             libelle: charge.libelle,
             type: charge.type,
             ajuste: montantAjuste != null,
+            annule: false,
+          })
+        } else if (inclureAnnulees) {
+          occurrences.push({
+            chargeId: charge.id,
+            date: dateISO,
+            montant: charge.montant,
+            libelle: charge.libelle,
+            type: charge.type,
+            ajuste: false,
+            annule: true,
           })
         }
       }

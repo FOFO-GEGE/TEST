@@ -4,9 +4,7 @@ import { db } from '../db.js'
 import { formatMontant, formatDate } from '../lib/format.js'
 import Modal from './Modal.jsx'
 import TransactionFormModal from './TransactionFormModal.jsx'
-
-const inputCls =
-  'w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none'
+import { inputCls } from './ui.js'
 
 const FILTRES_VIDES = { compteId: '', categorieId: '', periode: 'tout' }
 
@@ -86,28 +84,28 @@ export default function TousMouvementsModal({ transactions, comptes, categories,
         </div>
 
         {filtrees.length === 0 ? (
-          <p className="rounded-lg bg-slate-800 p-3 text-center text-xs text-slate-500">Aucun mouvement.</p>
+          <p className="rounded-2xl bg-card p-4 text-center text-xs text-ink-muted">Aucun mouvement.</p>
         ) : (
-          <ul className="max-h-[55vh] divide-y divide-slate-700 overflow-y-auto rounded-lg bg-slate-800">
+          <ul className="max-h-[55vh] divide-y divide-line overflow-y-auto rounded-2xl bg-card">
             {filtrees.map((t) => {
               const compte = comptes.find((c) => c.id === t.compteId)
               const categorie = categories.find((c) => c.id === t.categorieId)
               return (
-                <li key={t.id} className="flex items-center justify-between px-3 py-2">
+                <li key={t.id} className="flex items-center justify-between px-4 py-3">
                   <div className="min-w-0">
-                    <div className="truncate text-sm text-slate-200">{t.libelle}</div>
-                    <div className="truncate text-xs text-slate-500">
+                    <div className="truncate text-sm text-ink">{t.libelle}</div>
+                    <div className="truncate text-xs text-ink-muted">
                       {formatDate(t.date)} · {compte?.nom} · {categorie?.nom}
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className={`text-sm font-medium ${t.montant < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <span className={`mr-1 text-sm font-medium ${t.montant < 0 ? 'text-rust' : 'text-moss'}`}>
                       {formatMontant(t.montant)}
                     </span>
-                    <button onClick={() => setEdition(t)} className="rounded-full p-1.5 text-slate-400 hover:bg-slate-700">
+                    <button onClick={() => setEdition(t)} className="rounded-full p-1.5 text-ink-muted hover:bg-subtle">
                       <Pencil size={14} />
                     </button>
-                    <button onClick={() => supprimer(t)} className="rounded-full p-1.5 text-slate-400 hover:bg-slate-700">
+                    <button onClick={() => supprimer(t)} className="rounded-full p-1.5 text-ink-muted hover:bg-subtle">
                       <Trash2 size={14} />
                     </button>
                   </div>

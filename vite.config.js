@@ -18,8 +18,8 @@ export default defineConfig({
         name: 'Budget Perso',
         short_name: 'Budget',
         description: 'Gestion de compte personnel — charges récurrentes et reste à vivre',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
+        theme_color: '#f6f3ec',
+        background_color: '#f6f3ec',
         display: 'standalone',
         start_url: base,
         scope: base,
@@ -31,7 +31,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         // Sans cela, une nouvelle version reste en attente tant que tous les
         // onglets ne sont pas fermés — sur mobile en PWA installée, cela
         // revient à ne jamais voir la mise à jour.

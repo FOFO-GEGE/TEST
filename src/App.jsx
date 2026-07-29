@@ -17,9 +17,9 @@ export default function App() {
   const Page = PAGES[page]
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto max-w-lg pb-20">
-        <Suspense fallback={<div className="p-4 text-sm text-slate-500">Chargement…</div>}>
+    <div className="min-h-screen bg-cream text-ink">
+      <div className="mx-auto max-w-lg pb-24">
+        <Suspense fallback={<div className="p-4 text-sm text-ink-muted">Chargement…</div>}>
           <Page />
         </Suspense>
       </div>

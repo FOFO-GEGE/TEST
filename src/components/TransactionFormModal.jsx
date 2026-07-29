@@ -1,10 +1,7 @@
 import { useState } from 'react'
 import { db } from '../db.js'
 import Modal from './Modal.jsx'
-
-const inputCls =
-  'w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none'
-const labelCls = 'mb-1 block text-xs font-medium text-slate-400'
+import { inputCls, labelCls, btnPrimaryCls } from './ui.js'
 
 // Édition complète d'un mouvement existant (date, montant signé, compte,
 // catégorie, note) — la création rapide reste dans le détail d'un mois.
@@ -95,7 +92,7 @@ export default function TransactionFormModal({ transaction, comptes, categories,
             onChange={(e) => setEdition({ ...edition, note: e.target.value })}
           />
         </div>
-        <button type="submit" className="w-full rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white">
+        <button type="submit" className={btnPrimaryCls}>
           Enregistrer
         </button>
       </form>

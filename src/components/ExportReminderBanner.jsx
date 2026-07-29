@@ -10,7 +10,7 @@ export default function ExportReminderBanner() {
   if (!doitAlerter) return null
 
   return (
-    <div className="mx-4 mt-4 flex items-center gap-2 rounded-lg border border-amber-800 bg-amber-950/50 px-3 py-2 text-xs text-amber-300">
+    <div className="mx-5 mt-5 flex items-center gap-2 rounded-2xl border border-gold/30 bg-gold/10 px-4 py-3 text-xs text-gold">
       <AlertTriangle size={16} className="shrink-0" />
       <span>
         {dernierExport

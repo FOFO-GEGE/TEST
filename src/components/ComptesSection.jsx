@@ -5,10 +5,7 @@ import { db } from '../db.js'
 import { formatMontant, todayISO } from '../lib/format.js'
 import { soldeCompte } from '../lib/soldes.js'
 import Modal from './Modal.jsx'
-
-const inputCls =
-  'w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none'
-const labelCls = 'mb-1 block text-xs font-medium text-slate-400'
+import { inputCls, labelCls, btnPrimaryCls } from './ui.js'
 
 const VIDE = { nom: '', type: 'courant', soldeInitial: '', dateSolde: todayISO() }
 
@@ -43,28 +40,28 @@ export default function ComptesSection() {
   return (
     <section>
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Comptes</h2>
-        <button onClick={ouvrirAjout} className="flex items-center gap-1 text-sm text-emerald-400">
-          <Plus size={16} /> Ajouter
+        <div className="label">Comptes</div>
+        <button onClick={ouvrirAjout} className="flex items-center gap-1 text-sm font-medium text-ink">
+          <Plus size={14} /> Ajouter
         </button>
       </div>
 
-      <ul className="divide-y divide-slate-800 rounded-xl bg-slate-900">
+      <ul className="divide-y divide-line overflow-hidden rounded-2xl bg-card">
         {comptes.length === 0 && (
-          <li className="px-4 py-6 text-center text-sm text-slate-500">Aucun compte. Ajoutez votre premier compte.</li>
+          <li className="px-4 py-6 text-center text-sm text-ink-muted">Aucun compte. Ajoutez votre premier compte.</li>
         )}
         {comptes.map((c) => (
-          <li key={c.id} className={`flex items-center justify-between px-4 py-3 ${c.archive ? 'opacity-50' : ''}`}>
+          <li key={c.id} className={`flex items-center justify-between px-4 py-3.5 ${c.archive ? 'opacity-40' : ''}`}>
             <div>
-              <div className="text-sm font-medium text-slate-100">{c.nom}</div>
-              <div className="text-xs text-slate-500">{c.type === 'courant' ? 'Compte courant' : 'Épargne'}</div>
+              <div className="text-sm font-medium text-ink">{c.nom}</div>
+              <div className="text-xs text-ink-muted">{c.type === 'courant' ? 'Compte courant' : 'Épargne'}</div>
             </div>
-            <div className="mr-3 text-sm font-medium text-slate-100">{formatMontant(soldeCompte(c, transactions))}</div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => basculerArchive(c)} className="rounded-full p-2 text-slate-400 hover:bg-slate-800">
+            <div className="mr-2 text-sm font-medium text-ink">{formatMontant(soldeCompte(c, transactions))}</div>
+            <div className="flex items-center gap-1">
+              <button onClick={() => basculerArchive(c)} className="rounded-full p-2 text-ink-muted hover:bg-subtle">
                 {c.archive ? <ArchiveRestore size={16} /> : <Archive size={16} />}
               </button>
-              <button onClick={() => ouvrirEdition(c)} className="rounded-full p-2 text-slate-400 hover:bg-slate-800">
+              <button onClick={() => ouvrirEdition(c)} className="rounded-full p-2 text-ink-muted hover:bg-subtle">
                 <Pencil size={16} />
               </button>
             </div>
@@ -116,7 +113,7 @@ export default function ComptesSection() {
                 onChange={(e) => setEdition({ ...edition, dateSolde: e.target.value })}
               />
             </div>
-            <button type="submit" className="w-full rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white">
+            <button type="submit" className={btnPrimaryCls}>
               Enregistrer
             </button>
           </form>

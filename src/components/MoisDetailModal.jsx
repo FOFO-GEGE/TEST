@@ -9,10 +9,7 @@ import Modal from './Modal.jsx'
 import ChargeFormModal from './ChargeFormModal.jsx'
 import AjustementMoisModal from './AjustementMoisModal.jsx'
 import TransactionFormModal from './TransactionFormModal.jsx'
-
-const inputCls =
-  'w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none'
-const labelCls = 'mb-1 block text-xs font-medium text-slate-400'
+import { inputCls, labelCls, btnPrimaryCls } from './ui.js'
 
 export default function MoisDetailModal({ mois, charges, ajustements, transactions, comptes, categories, onClose }) {
   const debutMois = parseISO(`${mois}-01`)
@@ -60,47 +57,45 @@ export default function MoisDetailModal({ mois, charges, ajustements, transactio
 
   return (
     <Modal titre={format(debutMois, 'MMMM yyyy', { locale: fr })} onClose={onClose}>
-      <div className="space-y-5">
+      <div className="space-y-6">
         <section>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Charges prévues</h3>
+          <div className="label mb-2">Charges prévues</div>
           {occurrences.length === 0 ? (
-            <p className="rounded-lg bg-slate-800 p-3 text-center text-xs text-slate-500">
-              Aucune charge prévue ce mois-ci.
-            </p>
+            <p className="rounded-2xl bg-card p-4 text-center text-xs text-ink-muted">Aucune charge prévue ce mois-ci.</p>
           ) : (
-            <ul className="divide-y divide-slate-800 rounded-lg bg-slate-800">
+            <ul className="divide-y divide-line overflow-hidden rounded-2xl bg-card">
               {occurrences.map((o, i) => {
                 const charge = charges.find((c) => c.id === o.chargeId)
                 return (
-                  <li key={`${o.chargeId}-${o.date}-${i}`} className="px-3 py-2">
+                  <li key={`${o.chargeId}-${o.date}-${i}`} className="px-4 py-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="flex items-center gap-1.5 text-sm text-slate-200">
+                        <div className="flex items-center gap-1.5 text-sm text-ink">
                           {o.libelle}
                           {o.ajuste && (
-                            <span className="rounded bg-amber-900/60 px-1.5 py-0.5 text-[10px] font-medium text-amber-300">
+                            <span className="rounded-full bg-gold/15 px-2 py-0.5 text-[10px] font-medium text-gold">
                               ajusté
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-slate-500">{formatDate(o.date)}</div>
+                        <div className="text-xs text-ink-muted">{formatDate(o.date)}</div>
                       </div>
-                      <span className={`text-sm font-medium ${o.type === 'depense' ? 'text-red-400' : 'text-emerald-400'}`}>
+                      <span className={`text-sm font-medium ${o.type === 'depense' ? 'text-rust' : 'text-moss'}`}>
                         {o.type === 'depense' ? '-' : '+'}
                         {formatMontant(o.montant)}
                       </span>
                     </div>
                     {charge && (
-                      <div className="mt-2 flex gap-2">
+                      <div className="mt-2.5 flex gap-2">
                         <button
                           onClick={() => setChargeEnAjustement(charge)}
-                          className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-emerald-800 py-1.5 text-xs font-medium text-emerald-400"
+                          className="flex flex-1 items-center justify-center gap-1 rounded-full border border-line bg-white py-2 text-xs font-medium text-ink"
                         >
                           <CalendarCog size={13} /> Ce mois seulement
                         </button>
                         <button
                           onClick={() => setChargeEnEdition(charge)}
-                          className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-700 py-1.5 text-xs font-medium text-slate-300"
+                          className="flex flex-1 items-center justify-center gap-1 rounded-full py-2 text-xs font-medium text-ink-muted"
                         >
                           <Repeat size={13} /> Tous les mois
                         </button>
@@ -114,39 +109,37 @@ export default function MoisDetailModal({ mois, charges, ajustements, transactio
         </section>
 
         <section>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
-            Mouvements réels du mois
-          </h3>
+          <div className="label mb-2">Mouvements réels du mois</div>
           {mouvementsDuMois.length === 0 ? (
-            <p className="rounded-lg bg-slate-800 p-3 text-center text-xs text-slate-500">
+            <p className="rounded-2xl bg-card p-4 text-center text-xs text-ink-muted">
               Aucun mouvement saisi pour ce mois.
             </p>
           ) : (
-            <ul className="divide-y divide-slate-700 rounded-lg bg-slate-800">
+            <ul className="divide-y divide-line overflow-hidden rounded-2xl bg-card">
               {mouvementsDuMois.map((t) => {
                 const categorie = categories.find((c) => c.id === t.categorieId)
                 const compte = comptes.find((c) => c.id === t.compteId)
                 return (
-                  <li key={t.id} className="flex items-center justify-between px-3 py-2">
+                  <li key={t.id} className="flex items-center justify-between px-4 py-3">
                     <div className="min-w-0">
-                      <div className="truncate text-sm text-slate-200">{t.libelle}</div>
-                      <div className="truncate text-xs text-slate-500">
+                      <div className="truncate text-sm text-ink">{t.libelle}</div>
+                      <div className="truncate text-xs text-ink-muted">
                         {formatDate(t.date)} · {categorie?.nom} · {compte?.nom}
                       </div>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <span className={`text-sm font-medium ${t.montant < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <span className={`mr-1 text-sm font-medium ${t.montant < 0 ? 'text-rust' : 'text-moss'}`}>
                         {formatMontant(t.montant)}
                       </span>
                       <button
                         onClick={() => setMouvementEnEdition(t)}
-                        className="rounded-full p-1.5 text-slate-400 hover:bg-slate-700"
+                        className="rounded-full p-1.5 text-ink-muted hover:bg-subtle"
                       >
                         <Pencil size={14} />
                       </button>
                       <button
                         onClick={() => supprimerMouvement(t)}
-                        className="rounded-full p-1.5 text-slate-400 hover:bg-slate-700"
+                        className="rounded-full p-1.5 text-ink-muted hover:bg-subtle"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -159,20 +152,20 @@ export default function MoisDetailModal({ mois, charges, ajustements, transactio
         </section>
 
         <section>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Ajouter un mouvement</h3>
-          <form onSubmit={ajouterMouvement} className="space-y-2 rounded-lg bg-slate-800 p-3">
+          <div className="label mb-2">Ajouter un mouvement</div>
+          <form onSubmit={ajouterMouvement} className="space-y-2.5 rounded-2xl bg-card p-4">
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setMouvement({ ...mouvement, signe: 'depense' })}
-                className={`rounded-lg p-2 ${mouvement.signe === 'depense' ? 'bg-red-600 text-white' : 'bg-slate-700 text-slate-400'}`}
+                className={`rounded-full p-2.5 ${mouvement.signe === 'depense' ? 'bg-rust text-white' : 'bg-white text-ink-muted'}`}
               >
                 <ArrowDownCircle size={18} />
               </button>
               <button
                 type="button"
                 onClick={() => setMouvement({ ...mouvement, signe: 'revenu' })}
-                className={`rounded-lg p-2 ${mouvement.signe === 'revenu' ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-400'}`}
+                className={`rounded-full p-2.5 ${mouvement.signe === 'revenu' ? 'bg-moss text-white' : 'bg-white text-ink-muted'}`}
               >
                 <ArrowUpCircle size={18} />
               </button>
@@ -226,10 +219,7 @@ export default function MoisDetailModal({ mois, charges, ajustements, transactio
                 onChange={(e) => setMouvement({ ...mouvement, date: e.target.value })}
               />
             </div>
-            <button
-              type="submit"
-              className="flex w-full items-center justify-center gap-1 rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white"
-            >
+            <button type="submit" className={`flex items-center justify-center gap-1 ${btnPrimaryCls}`}>
               <Plus size={16} /> Ajouter le mouvement
             </button>
           </form>

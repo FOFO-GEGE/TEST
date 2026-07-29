@@ -20,6 +20,9 @@ le montant réellement disponible avant la prochaine paie, compte tenu des
 - date-fns (locale `fr`)
 - vite-plugin-pwa
 - lucide-react
+- `@fontsource-variable/fraunces` — police serif italique (titres, gros
+  montants), self-hébergée pour rester utilisable hors-ligne ; ajoutée hors
+  de la liste imposée d'origine pour la refonte visuelle, donc signalée ici
 
 Toute la logique de calcul (occurrences des charges, soldes, reste à
 vivre, projection sur 12 mois) est isolée dans `src/lib/`, sous forme de

@@ -29,59 +29,62 @@ export default function Charges() {
     }, 0)
 
   return (
-    <div className="p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-slate-100">Charges récurrentes</h1>
+    <div className="p-5">
+      <div className="mb-5 flex items-start justify-between">
+        <div>
+          <div className="label">Charges</div>
+          <h1 className="mt-0.5 font-display text-3xl italic text-ink">Récurrentes</h1>
+        </div>
         <button
           onClick={() => setAjoutOuvert(true)}
           disabled={comptes.length === 0 || categories.length === 0}
-          className="flex items-center gap-1 text-sm text-emerald-400 disabled:opacity-40"
+          className="flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-xs font-medium text-cream disabled:opacity-30"
         >
-          <Plus size={16} /> Ajouter
+          <Plus size={14} /> Ajouter
         </button>
       </div>
 
-      <div className="mb-4 rounded-xl bg-slate-900 p-4">
-        <div className="text-xs text-slate-400">Total mensuel lissé des dépenses</div>
-        <div className="text-lg font-semibold text-slate-100">{formatMontant(totalMensuelLisse)}</div>
+      <div className="mb-5 rounded-2xl bg-card p-4">
+        <div className="label">Total mensuel lissé des dépenses</div>
+        <div className="mt-1 font-display text-3xl italic text-ink">{formatMontant(totalMensuelLisse)}</div>
       </div>
 
       {comptes.length === 0 || categories.length === 0 ? (
-        <p className="rounded-xl bg-slate-900 p-6 text-center text-sm text-slate-500">
+        <p className="rounded-2xl bg-card p-6 text-center text-sm text-ink-muted">
           Créez d'abord un compte et une catégorie dans les réglages.
         </p>
       ) : (
         charges.length === 0 && (
-          <p className="rounded-xl bg-slate-900 p-6 text-center text-sm text-slate-500">
+          <p className="rounded-2xl bg-card p-6 text-center text-sm text-ink-muted">
             Aucune charge récurrente. Ajoutez votre premier loyer, abonnement ou salaire.
           </p>
         )
       )}
 
       {groupes.map((groupe) => (
-        <div key={groupe.id} className="mb-4">
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">{groupe.label}</h2>
-          <ul className="divide-y divide-slate-800 rounded-xl bg-slate-900">
+        <div key={groupe.id} className="mb-5">
+          <div className="label mb-2">{groupe.label}</div>
+          <ul className="divide-y divide-line overflow-hidden rounded-2xl bg-card">
             {groupe.charges.map((c) => {
               const compte = comptes.find((cp) => cp.id === c.compteId)
               const categorie = categories.find((cat) => cat.id === c.categorieId)
               return (
-                <li key={c.id} className={`flex items-center justify-between px-4 py-3 ${c.active ? '' : 'opacity-50'}`}>
+                <li key={c.id} className={`flex items-center justify-between px-4 py-3.5 ${c.active ? '' : 'opacity-40'}`}>
                   <div>
-                    <div className="text-sm font-medium text-slate-100">{c.libelle}</div>
-                    <div className="text-xs text-slate-500">
+                    <div className="text-sm font-medium text-ink">{c.libelle}</div>
+                    <div className="text-xs text-ink-muted">
                       {compte?.nom} · {categorie?.nom} · jour {c.jourPrelevement}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm font-medium ${c.type === 'depense' ? 'text-red-400' : 'text-emerald-400'}`}>
+                  <div className="flex items-center gap-1">
+                    <span className={`mr-1 text-sm font-medium ${c.type === 'depense' ? 'text-rust' : 'text-moss'}`}>
                       {c.type === 'depense' ? '-' : '+'}
                       {formatMontant(c.montant)}
                     </span>
-                    <button onClick={() => basculerActive(c)} className="rounded-full p-2 text-slate-400 hover:bg-slate-800">
+                    <button onClick={() => basculerActive(c)} className="rounded-full p-2 text-ink-muted hover:bg-subtle">
                       <Power size={16} />
                     </button>
-                    <button onClick={() => setEdition(c)} className="rounded-full p-2 text-slate-400 hover:bg-slate-800">
+                    <button onClick={() => setEdition(c)} className="rounded-full p-2 text-ink-muted hover:bg-subtle">
                       <Pencil size={16} />
                     </button>
                   </div>

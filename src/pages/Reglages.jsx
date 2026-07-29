@@ -5,8 +5,8 @@ import BackupSection from '../components/BackupSection.jsx'
 
 export default function Reglages() {
   return (
-    <div className="space-y-6 p-4">
-      <h1 className="text-xl font-semibold text-slate-100">Réglages</h1>
+    <div className="space-y-6 p-5">
+      <h1 className="font-display text-3xl italic text-ink">Réglages</h1>
       <ComptesSection />
       <CategoriesSection />
       <SeuilAlerteSection />

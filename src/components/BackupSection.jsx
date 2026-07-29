@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Download, Trash2 } from 'lucide-react'
 import { db } from '../db.js'
 import { exporterJSON } from '../lib/backup.js'
+import { btnPrimaryCls, btnDangerCls } from './ui.js'
 
 export default function BackupSection() {
   const [message, setMessage] = useState(null)
@@ -34,23 +35,15 @@ export default function BackupSection() {
 
   return (
     <section>
-      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Sauvegarde</h2>
-      <div className="space-y-2 rounded-xl bg-slate-900 p-4">
-        <button
-          onClick={exporter}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white"
-        >
+      <div className="label mb-2">Sauvegarde</div>
+      <div className="space-y-2 rounded-2xl bg-card p-4">
+        <button onClick={exporter} className={`flex items-center justify-center gap-2 ${btnPrimaryCls}`}>
           <Download size={16} /> Exporter mes données (JSON)
         </button>
-        <button
-          onClick={remiseAZero}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-900 py-2 text-sm font-medium text-red-400"
-        >
+        <button onClick={remiseAZero} className={`flex items-center justify-center gap-2 ${btnDangerCls}`}>
           <Trash2 size={16} /> Remise à zéro
         </button>
-        {message && (
-          <p className={`text-xs ${message.type === 'ok' ? 'text-emerald-400' : 'text-red-400'}`}>{message.texte}</p>
-        )}
+        {message && <p className="text-xs text-moss">{message.texte}</p>}
       </div>
     </section>
   )

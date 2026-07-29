@@ -5,10 +5,7 @@ import { Trash2 } from 'lucide-react'
 import { db } from '../db.js'
 import { formatMontant } from '../lib/format.js'
 import Modal from './Modal.jsx'
-
-const inputCls =
-  'w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none'
-const labelCls = 'mb-1 block text-xs font-medium text-slate-400'
+import { inputCls, labelCls, btnPrimaryCls, btnDangerCls, btnSecondaryCls } from './ui.js'
 
 /**
  * Ajuste une charge pour un seul mois : le modèle de la charge n'est pas
@@ -46,11 +43,11 @@ export default function AjustementMoisModal({ charge, mois, ajustement, onClose 
   }
 
   return (
-    <Modal titre={`${charge.libelle} — ${libelleMois}`} onClose={onClose}>
-      <form onSubmit={enregistrer} className="space-y-3">
-        <p className="rounded-lg bg-slate-800 p-3 text-xs text-slate-400">
-          Ce changement ne s'applique qu'à <strong className="text-slate-200">{libelleMois}</strong>. Les autres mois
-          gardent le montant habituel de {formatMontant(charge.montant)}.
+    <Modal titre={charge.libelle} onClose={onClose}>
+      <form onSubmit={enregistrer} className="space-y-4">
+        <p className="rounded-2xl bg-card p-4 text-xs leading-relaxed text-ink-muted">
+          Ce changement ne s'applique qu'à <strong className="font-medium text-ink">{libelleMois}</strong>. Les
+          autres mois gardent le montant habituel de {formatMontant(charge.montant)}.
         </p>
 
         <div>
@@ -65,24 +62,16 @@ export default function AjustementMoisModal({ charge, mois, ajustement, onClose 
           />
         </div>
 
-        <button type="submit" className="w-full rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white">
+        <button type="submit" className={btnPrimaryCls}>
           Enregistrer pour ce mois
         </button>
 
-        <button
-          type="button"
-          onClick={annulerEcheance}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-900 py-2 text-sm font-medium text-red-400"
-        >
+        <button type="button" onClick={annulerEcheance} className={`flex items-center justify-center gap-2 ${btnDangerCls}`}>
           <Trash2 size={16} /> Pas d'échéance ce mois-ci
         </button>
 
         {ajustement && (
-          <button
-            type="button"
-            onClick={retablirModele}
-            className="w-full rounded-lg border border-slate-700 py-2 text-sm font-medium text-slate-300"
-          >
+          <button type="button" onClick={retablirModele} className={btnSecondaryCls}>
             Rétablir le montant habituel
           </button>
         )}

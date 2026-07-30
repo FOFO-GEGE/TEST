@@ -1,0 +1,156 @@
+import { describe, it, expect } from 'vitest'
+import { projeterSoldeJournalier, resumeMensuel, premierePassageSousSeuil, moisAvecAlerte } from './projection.js'
+
+function charge(overrides) {
+  return {
+    id: 1,
+    libelle: 'Charge',
+    montant: 100,
+    type: 'depense',
+    compteId: 1,
+    categorieId: 1,
+    frequence: 'mensuel',
+    jourPrelevement: 10,
+    moisReference: null,
+    dateDebut: '2024-01-01',
+    dateFin: null,
+    active: true,
+    ...overrides,
+  }
+}
+
+describe('projeterSoldeJournalier', () => {
+  it('applique la variation le jour de l’échéance et la conserve ensuite', () => {
+    const points = projeterSoldeJournalier({
+      soldeDepart: 500,
+      charges: [charge()],
+      dateDebut: '2024-01-01',
+      nombreJours: 15,
+    })
+    const avant = points.find((p) => p.date === '2024-01-09')
+    const jourJ = points.find((p) => p.date === '2024-01-10')
+    const apres = points.find((p) => p.date === '2024-01-11')
+    expect(avant.solde).toBe(500)
+    expect(jourJ.solde).toBe(400)
+    expect(apres.solde).toBe(400)
+  })
+
+  it('cumule plusieurs charges le même jour', () => {
+    const points = projeterSoldeJournalier({
+      soldeDepart: 1000,
+      charges: [charge({ id: 1, montant: 100, type: 'depense' }), charge({ id: 2, montant: 2000, type: 'revenu' })],
+      dateDebut: '2024-01-01',
+      nombreJours: 15,
+    })
+    expect(points.find((p) => p.date === '2024-01-10').solde).toBe(1000 - 100 + 2000)
+  })
+
+  it('applique une transaction future à sa date réelle, pas dès le départ', () => {
+    const points = projeterSoldeJournalier({
+      soldeDepart: 500,
+      charges: [],
+      transactions: [{ date: '2024-03-15', montant: -300 }],
+      dateDebut: '2024-01-01',
+      nombreJours: 90,
+    })
+    expect(points.find((p) => p.date === '2024-01-01').solde).toBe(500)
+    expect(points.find((p) => p.date === '2024-03-14').solde).toBe(500)
+    expect(points.find((p) => p.date === '2024-03-15').solde).toBe(200)
+  })
+})
+
+describe('resumeMensuel', () => {
+  it('agrège revenus, dépenses et solde de fin de mois', () => {
+    const charges = [
+      charge({ id: 1, libelle: 'Salaire', type: 'revenu', montant: 2000, jourPrelevement: 25 }),
+      charge({ id: 2, libelle: 'Loyer', type: 'depense', montant: 800, jourPrelevement: 5 }),
+    ]
+    const mois = resumeMensuel({ soldeDepart: 100, charges, dateDebut: '2024-01-01', nombreMois: 3 })
+    expect(mois).toHaveLength(3)
+    expect(mois[0]).toMatchObject({ mois: '2024-01', revenus: 2000, depenses: 800, soldeFinDeMois: 100 + 2000 - 800 })
+    expect(mois[1].soldeFinDeMois).toBe(100 + 2000 - 800 + 2000 - 800)
+    expect(mois[2].mois).toBe('2024-03')
+  })
+
+  it('compte une charge prévue même si une transaction réelle tombe le même mois', () => {
+    // Toute charge prévue est considérée comme certaine : les occurrences ne
+    // sont plus filtrées par rapprochement, une transaction réelle datée
+    // dans le futur s'ajoute donc à l'occurrence plutôt que de la remplacer.
+    const charges = [
+      charge({ id: 1, libelle: 'Salaire', type: 'revenu', montant: 2230, jourPrelevement: 5 }),
+      charge({ id: 2, libelle: 'Loyer', type: 'depense', montant: 1802, jourPrelevement: 10 }),
+    ]
+    const transactions = [{ date: '2024-02-15', montant: -50 }]
+    const mois = resumeMensuel({ soldeDepart: 0, charges, transactions, dateDebut: '2024-01-01', nombreMois: 3 })
+    expect(mois[1]).toMatchObject({ mois: '2024-02', revenus: 2230, depenses: 1802 + 50 })
+    expect(mois[0]).toMatchObject({ revenus: 2230, depenses: 1802 })
+  })
+
+  it('n’applique un ajustement de charge qu’au mois visé', () => {
+    const charges = [charge({ id: 1, libelle: 'Loyer', type: 'depense', montant: 800, jourPrelevement: 5 })]
+    const ajustements = [{ chargeId: 1, mois: '2024-02', montant: 1200, annulee: false }]
+    const mois = resumeMensuel({ soldeDepart: 0, charges, ajustements, dateDebut: '2024-01-01', nombreMois: 3 })
+    expect(mois.map((m) => m.depenses)).toEqual([800, 1200, 800])
+  })
+
+  it('intègre les transactions futures dans le mois où elles tombent réellement', () => {
+    const mois = resumeMensuel({
+      soldeDepart: 100,
+      charges: [],
+      transactions: [{ date: '2024-02-10', montant: -50 }],
+      dateDebut: '2024-01-01',
+      nombreMois: 3,
+    })
+    expect(mois[0].soldeFinDeMois).toBe(100) // janvier non affecté
+    expect(mois[1].depenses).toBe(50)
+    expect(mois[1].soldeFinDeMois).toBe(50)
+  })
+})
+
+describe('premierePassageSousSeuil', () => {
+  it('retourne le premier point sous le seuil', () => {
+    const points = projeterSoldeJournalier({
+      soldeDepart: 500,
+      charges: [charge({ montant: 600 })],
+      dateDebut: '2024-01-01',
+      nombreJours: 15,
+    })
+    const passage = premierePassageSousSeuil(points, 0)
+    expect(passage.date).toBe('2024-01-10')
+    expect(passage.solde).toBe(-100)
+  })
+
+  it('retourne null si le solde ne passe jamais sous le seuil', () => {
+    const points = projeterSoldeJournalier({
+      soldeDepart: 5000,
+      charges: [charge({ montant: 10 })],
+      dateDebut: '2024-01-01',
+      nombreJours: 15,
+    })
+    expect(premierePassageSousSeuil(points, 0)).toBeNull()
+  })
+})
+
+describe('moisAvecAlerte', () => {
+  it('signale les mois où le solde journalier descend sous le seuil', () => {
+    const points = projeterSoldeJournalier({
+      soldeDepart: 200,
+      charges: [charge({ montant: 100, jourPrelevement: 15 })],
+      dateDebut: '2024-01-01',
+      nombreJours: 30, // reste en janvier (Jan1 → Jan31)
+    })
+    const alertes = moisAvecAlerte(points, 150)
+    expect(alertes.has('2024-01')).toBe(true)
+    expect(alertes.size).toBe(1)
+  })
+
+  it('ne signale rien si le solde reste au-dessus du seuil', () => {
+    const points = projeterSoldeJournalier({
+      soldeDepart: 5000,
+      charges: [charge({ montant: 10, jourPrelevement: 15 })],
+      dateDebut: '2024-01-01',
+      nombreJours: 30,
+    })
+    expect(moisAvecAlerte(points, 0).size).toBe(0)
+  })
+})

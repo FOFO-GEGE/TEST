@@ -1,0 +1,29 @@
+@import './fonts.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+  touch-action: manipulation;
+  background-color: #f6f3ec;
+}
+
+body {
+  overscroll-behavior-y: none;
+}
+
+/* iOS Safari zoome automatiquement au focus si le champ affiche moins de
+   16px — indépendant du viewport (maximum-scale/user-scalable ne suffisent
+   pas à eux seuls sur toutes les versions). */
+input,
+select,
+textarea {
+  font-size: 16px !important;
+}
+
+.label {
+  @apply text-[11px] font-medium uppercase tracking-[0.12em] text-ink-muted;
+}

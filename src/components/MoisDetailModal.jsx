@@ -28,6 +28,7 @@ export default function MoisDetailModal({ mois, charges, ajustements, transactio
   const mouvementsDuMois = transactions
     .filter((t) => t.date >= debutMoisISO && t.date <= finMoisISO)
     .sort((a, b) => a.date.localeCompare(b.date))
+  const totalMouvements = mouvementsDuMois.reduce((s, t) => s + t.montant, 0)
 
   const [chargeEnEdition, setChargeEnEdition] = useState(null)
   const [creditEnEdition, setCreditEnEdition] = useState(null)
@@ -128,7 +129,14 @@ export default function MoisDetailModal({ mois, charges, ajustements, transactio
         </section>
 
         <section>
-          <div className="label mb-2">Mouvements réels du mois</div>
+          <div className="mb-2 flex items-center justify-between">
+            <div className="label">Mouvements réels du mois</div>
+            {mouvementsDuMois.length > 0 && (
+              <span className={`text-sm font-medium ${totalMouvements < 0 ? 'text-rust' : 'text-moss'}`}>
+                {formatMontant(totalMouvements)}
+              </span>
+            )}
+          </div>
           {mouvementsDuMois.length === 0 ? (
             <p className="rounded-2xl bg-card p-4 text-center text-xs text-ink-muted">
               Aucun mouvement saisi pour ce mois.
